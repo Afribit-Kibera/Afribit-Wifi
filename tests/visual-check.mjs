@@ -2,7 +2,6 @@ import { mkdir } from "node:fs/promises";
 import { chromium } from "playwright";
 
 const baseUrl = process.env.TEST_BASE_URL ?? "http://localhost:3000";
-const adminPassword = process.env.TEST_ADMIN_PASSWORD;
 const executablePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 const browser = await chromium.launch({ headless: true, executablePath });
 const results = [];
@@ -21,6 +20,7 @@ async function verifyViewport(name, viewport) {
     heading: await page.getByRole("heading", { name: "Connect to Bitcoin Valley." }).isVisible(),
     packageCount: await page.locator(".package-option").count(),
     overflow: await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth),
+    paymentActionTop: await page.getByRole("button", { name: "Pay with Lightning" }).evaluate((element) => Math.round(element.getBoundingClientRect().top)),
     errors,
   });
   await context.close();
@@ -38,36 +38,14 @@ adminPage.on("pageerror", (error) => adminErrors.push(error.message));
 await adminPage.goto(`${baseUrl}/admin`, { waitUntil: "networkidle" });
 const redirectedToLogin = adminPage.url().includes("/admin/login");
 
-if (adminPassword) {
-  await adminPage.getByLabel("Email").fill("admin@afribit.africa");
-  await adminPage.getByLabel("Password").fill(adminPassword);
-  await adminPage.getByRole("button", { name: "Sign in" }).click();
-  await adminPage.waitForTimeout(1500);
-  await adminPage.screenshot({ path: "artifacts/admin-desktop.png", fullPage: true });
-}
-
-const authenticated = adminPassword ? adminPage.url() === `${baseUrl}/admin` : null;
+await adminPage.screenshot({ path: "artifacts/admin-login-desktop.png", fullPage: true });
+const hasPasskeyControl = await adminPage.getByRole("button", { name: /Verify this device|Register admin device/ }).isVisible();
 results.push({
   name: "admin",
   redirectedToLogin,
-  authenticated,
-  navItems: adminPassword ? await adminPage.locator("nav a").count() : null,
+  hasPasskeyControl,
   errors: adminErrors,
 });
-
-if (authenticated) {
-  await adminPage.goto(`${baseUrl}/admin/vouchers`, { waitUntil: "networkidle" });
-  results.push({
-    name: "voucher-admin",
-    heading: await adminPage.getByRole("heading", { name: "Voucher batches" }).isVisible(),
-    quantityField: await adminPage.getByLabel("Quantity").isVisible(),
-    amountField: await adminPage.getByLabel("Amount (sats)").isVisible(),
-    validityFields: await adminPage.getByLabel("Valid from").isVisible() && await adminPage.getByLabel("Valid until").isVisible(),
-    overflow: await adminPage.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth),
-    errors: adminErrors,
-  });
-  await adminPage.screenshot({ path: "artifacts/vouchers-desktop.png", fullPage: true });
-}
 
 const healthResponse = await adminPage.request.get(`${baseUrl}/api/health`);
 results.push({ name: "health", status: healthResponse.status(), body: await healthResponse.json() });

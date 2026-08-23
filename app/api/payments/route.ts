@@ -5,6 +5,7 @@ import { createBtcpayInvoice } from "@/lib/btcpay";
 import { db } from "@/lib/db";
 import { packages, payments } from "@/lib/db/schema";
 import { createPortalSession } from "@/lib/portal-session";
+import { queuePaymentBootstrap } from "@/lib/access";
 
 const paymentSchema = z.object({
   packageId: z.string().uuid(),
@@ -44,6 +45,11 @@ export async function POST(request: Request) {
       .update(payments)
       .set({ providerInvoiceId: invoice.id, checkoutUrl: invoice.checkoutLink, updatedAt: new Date() })
       .where(eq(payments.id, payment.id));
+    try {
+      await queuePaymentBootstrap(session.id);
+    } catch (bootstrapError) {
+      console.error("Payment bootstrap grant failed", bootstrapError instanceof Error ? bootstrapError.message : "Unknown error");
+    }
     return Response.json({ paymentId: payment.id, checkoutUrl: invoice.checkoutLink }, { status: 201 });
   } catch (error) {
     await db.update(payments).set({ status: "invalid", updatedAt: new Date() }).where(eq(payments.id, payment.id));
@@ -51,4 +57,3 @@ export async function POST(request: Request) {
     return Response.json({ error: "Lightning payments are temporarily unavailable" }, { status: 503 });
   }
 }
-

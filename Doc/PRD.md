@@ -16,6 +16,7 @@ If this is not solved, staff must manually manage access, payments can be diffic
 
 - Launch a production captive portal at `wifi.afribit.africa`.
 - Allow users to purchase Wi-Fi packages using Bitcoin Lightning through BTCPay Server.
+- Make the complete purchase flow usable from an unpaid phone without mobile data.
 - Automatically grant access to a device after a confirmed payment.
 - Track active sessions, expired sessions, payment status, and device identifiers.
 - Provide an admin backend for managing packages, viewing payments, and troubleshooting user access.
@@ -74,6 +75,7 @@ The person responsible for prices, packages, revenue tracking, payment reconcili
 - The portal must receive or infer MikroTik redirect parameters such as MAC address, IP address, router identity, and original destination where available.
 - The portal must show available Wi-Fi packages.
 - The portal must work on common mobile captive portal browsers.
+- The customer experience must be mobile-first, with plan selection and the primary action visible early on a 360-430px screen.
 
 Acceptance criteria:
 
@@ -98,6 +100,8 @@ Acceptance criteria:
 - The backend must store invoice IDs and associate them with pending device sessions.
 - The backend must receive BTCPay webhook events.
 - Only settled or confirmed payment states should grant Wi-Fi access.
+- The portal and BTCPay host must be reachable before payment.
+- Creating an invoice may issue one rate-limited, three-minute low-speed payment grant per device every 12 hours so a same-phone Lightning wallet can reach its backend.
 
 Acceptance criteria:
 
@@ -128,7 +132,9 @@ Acceptance criteria:
 
 ### P0: Admin Dashboard
 
-- Admins must be able to log in.
+- Admins must sign in with an approved platform passkey using fingerprint, face recognition, Windows Hello, or the device PIN; email/password login is not used.
+- The first admin device must require a private bootstrap enrollment code. An approved admin can generate a ten-minute, single-use pairing code to enroll each additional phone or laptop.
+- Admins must be able to name, inspect, and revoke approved passkeys. The current device cannot revoke itself.
 - Admins must see packages, invoices, active sessions, failed authorizations, and recent activity.
 - Admins must be able to manually grant, revoke, or extend access.
 - Admins must create voucher batches with quantity, sale amount in sats, access duration, optional speed/data caps, validity window, code prefix, and per-code redemption limit.
@@ -205,7 +211,7 @@ Acceptance criteria:
 
 Initial tables:
 
-- `users`: admin users and roles.
+- `admin_passkeys`: credential public key, replay counter, device label/type, backup state, use timestamps, and revocation state.
 - `packages`: Wi-Fi plans, prices, durations, speed profiles, and active status.
 - `portal_sessions`: device MAC, IP, router identity, status, selected package, and expiration.
 - `payments`: provider, invoice ID, amount, currency, status, raw event references, and settlement time.
@@ -216,14 +222,14 @@ Initial tables:
 
 ## 10. Security Requirements
 
-- Never commit GitHub tokens, BTCPay API keys, webhook secrets, database URLs, router passwords, or admin passwords.
+- Never commit GitHub tokens, BTCPay API keys, webhook secrets, database URLs, router passwords, enrollment codes, or authentication secrets.
 - Store production secrets in Vercel environment variables or the gateway agent environment.
 - Use a BTCPay webhook secret and verify webhook authenticity.
 - Use least-privilege BTCPay permissions for invoice creation and invoice reads.
 - Do not expose MikroTik management APIs publicly unless there is no alternative.
 - If MikroTik API exposure is required, enforce TLS, strong credentials, firewall allowlists, and no password reuse.
 - Hash voucher codes in the database.
-- Protect admin routes with authentication and role checks.
+- Require WebAuthn user verification for admin registration and login. Biometric data remains on the device and is never sent to or stored by the application.
 - Log security-sensitive events without logging secret values.
 
 Required environment variables should include:
@@ -233,7 +239,10 @@ Required environment variables should include:
 - `BTCPAY_API_KEY`
 - `BTCPAY_WEBHOOK_SECRET`
 - `DATABASE_URL`
-- `NEXTAUTH_SECRET` or equivalent auth secret
+- `AUTH_SECRET`
+- `ADMIN_ENROLLMENT_SECRET`
+- `WEBAUTHN_RP_ID`
+- `WEBAUTHN_ORIGINS`
 - `GATEWAY_AGENT_TOKEN`
 - `MIKROTIK_HOST`
 - `MIKROTIK_USERNAME`
@@ -248,6 +257,7 @@ Unauthenticated users must be able to reach only what is required to pay and act
 - BTCPay host: `pay.insats.org`
 - Required BTCPay static assets and invoice endpoints
 - DNS resolvers needed by the captive portal flow
+- A short, cooldown-protected low-speed payment grant for same-phone wallets
 - Optional later: Bitika API/payment domains once M-Pesa is implemented
 
 The walled garden should be tested on Android, iOS, Windows, and macOS captive portal flows.
@@ -284,7 +294,7 @@ The walled garden should be tested on Android, iOS, Windows, and macOS captive p
 - Should access be time-only, data-capped, speed-limited, or a combination?
 - Where will the gateway agent run on the local network?
 - Which managed PostgreSQL provider should be used?
-- What admin authentication provider should be used?
+- Which local device will run the gateway agent at static address `10.20.0.2`?
 - Will M-Pesa/Bitika be part of launch or a fast follow?
 
 ## 14. Release Criteria

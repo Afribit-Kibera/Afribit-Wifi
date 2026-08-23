@@ -41,7 +41,7 @@ export async function createVoucherBatchAction(formData: FormData) {
     validUntil,
     maxRedemptions: input.maxRedemptions,
     prefix: input.prefix.toUpperCase(),
-    createdBy: admin.email,
+    createdBy: admin.actor,
   }).returning();
 
   const records = Array.from({ length: input.quantity }, () => {
@@ -49,8 +49,7 @@ export async function createVoucherBatchAction(formData: FormData) {
     return { batchId: batch.id, codeHash: hashVoucherCode(code), codeCiphertext: encryptVoucherCode(code), codeLastFour: code.slice(-4) };
   });
   for (let offset = 0; offset < records.length; offset += 200) await db.insert(vouchers).values(records.slice(offset, offset + 200));
-  await db.insert(auditLogs).values({ actor: admin.email, action: "voucher_batch.created", entityType: "voucher_batch", entityId: batch.id, details: { quantity: input.quantity, durationMinutes: input.accessDurationMinutes, saleAmountSats: input.saleAmountSats } });
+  await db.insert(auditLogs).values({ actor: admin.actor, action: "voucher_batch.created", entityType: "voucher_batch", entityId: batch.id, details: { quantity: input.quantity, durationMinutes: input.accessDurationMinutes, saleAmountSats: input.saleAmountSats } });
   revalidatePath("/admin/vouchers");
   redirect(`/admin/vouchers/${batch.id}`);
 }
-

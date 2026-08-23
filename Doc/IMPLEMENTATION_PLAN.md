@@ -2,9 +2,9 @@
 
 ## Delivery Status - 24 August 2026
 
-- Completed: Next.js application, Vercel project, Neon PostgreSQL, schema, seed data, admin authentication, package management, payment ledger, voucher batches and export, free-site policy, manual access controls, BTCPay integration code, gateway job API, and local MikroTik agent.
+- Completed: Next.js application, Vercel project, Neon PostgreSQL, schema, seed data, passkey-only admin authentication, mobile-first portal, package management, payment ledger, voucher batches and export, free-site policy, manual access controls, BTCPay integration code, short payment connectivity grants, gateway job API, and local MikroTik agent.
 - Verified: lint, TypeScript, production build, database health, authenticated admin flow, desktop portal, mobile portal, and voucher admin controls.
-- Pending external activation: rotated BTCPay API key and webhook secret, operator-selected admin password, MikroTik REST credentials, gateway agent installation on the LAN, and DNS record creation.
+- Pending external activation: rotated BTCPay API key and webhook secret, first-device passkey enrollment, MikroTik REST credentials, gateway agent installation on the LAN, router import, and DNS record creation.
 - Deferred by product decision: M-Pesa/Bitika and L402 remain later phases.
 
 ## 1. Recommended Technical Direction
@@ -53,7 +53,9 @@ BTCPAY_STORE_ID=
 BTCPAY_API_KEY=
 BTCPAY_WEBHOOK_SECRET=
 AUTH_SECRET=
-ADMIN_EMAIL=
+ADMIN_ENROLLMENT_SECRET=
+WEBAUTHN_RP_ID=wifi.afribit.africa
+WEBAUTHN_ORIGINS=https://wifi.afribit.africa
 GATEWAY_AGENT_TOKEN=
 MIKROTIK_HOST=
 MIKROTIK_USERNAME=
@@ -130,6 +132,7 @@ Objective: users can land on the portal, select a package, and begin payment.
 Tasks:
 
 - Build public landing route for captive portal.
+- Build the customer flow mobile-first and keep plan selection close to the first viewport.
 - Capture MikroTik redirect parameters:
   - MAC address
   - IP address
@@ -139,6 +142,7 @@ Tasks:
 - Show active packages.
 - Add package selection and invoice creation call.
 - Add payment status page.
+- Issue a short, low-speed payment bootstrap grant with a per-MAC cooldown after invoice creation.
 
 Exit criteria:
 
@@ -218,6 +222,7 @@ Objective: support operational management.
 Tasks:
 
 - Add admin authentication.
+- Use platform WebAuthn passkeys with required local user verification, revocation, and single-use pairing codes for additional devices.
 - Build dashboard overview:
   - active sessions
   - paid invoices
@@ -354,10 +359,9 @@ Prices should live in the database, not code.
 
 ## 16. Immediate Next Steps
 
-1. Confirm initial Wi-Fi packages and prices.
-2. Confirm production RouterOS version and preferred authorization method.
-3. Choose PostgreSQL provider.
-4. Create the Next.js app and Vercel project.
-5. Configure `wifi.afribit.africa` DNS.
-6. Configure BTCPay webhook endpoint once deployed.
-7. Build and test the first BTCPay-to-MikroTik access flow.
+1. Add the documented DNS records for `wifi.afribit.africa`.
+2. Open `/admin/login` on the production domain and enroll the first approved device with the private Vercel enrollment secret.
+3. Rotate and configure BTCPay credentials, then create the production webhook.
+4. Upgrade the RB951 to stable RouterOS v7, back it up, review and import `mikrotik/bitcoin-valley-hotspot.rsc`.
+5. Upload `mikrotik/hotspot-bv` to the router and install the LAN gateway agent.
+6. Test unpaid portal, same-phone Lightning payment, voucher, expiry, and revocation on real Android and iOS devices.

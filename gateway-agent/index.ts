@@ -56,14 +56,20 @@ async function executeJob(job: GatewayJob) {
     const accessGrantId = String(job.payload.accessGrantId);
     const macAddress = String(job.payload.macAddress);
     const ipAddress = typeof job.payload.ipAddress === "string" ? job.payload.ipAddress : undefined;
+    const speedLimitKbps = typeof job.payload.speedLimitKbps === "number" ? job.payload.speedLimitKbps : undefined;
     await routerRequest("/ip/hotspot/ip-binding", { method: "PUT", body: JSON.stringify({ "mac-address": macAddress, ...(ipAddress ? { address: ipAddress } : {}), type: "bypassed", comment: `bitcoin-valley-wifi:grant:${accessGrantId}` }) });
-    return { binding: "created" };
+    if (ipAddress && speedLimitKbps) {
+      await routerRequest("/queue/simple", { method: "PUT", body: JSON.stringify({ name: `bv-${accessGrantId.slice(0, 8)}`, target: `${ipAddress}/32`, "max-limit": `${speedLimitKbps}k/${speedLimitKbps}k`, comment: `bitcoin-valley-wifi:grant:${accessGrantId}` }) });
+    }
+    return { binding: "created", queue: ipAddress && speedLimitKbps ? "created" : "not-required" };
   }
   if (job.type === "revoke_access") {
     const accessGrantId = String(job.payload.accessGrantId);
     const records = (await managedRecords("/ip/hotspot/ip-binding")).filter((record) => record.comment === `bitcoin-valley-wifi:grant:${accessGrantId}`);
+    const queues = (await managedRecords("/queue/simple")).filter((record) => record.comment === `bitcoin-valley-wifi:grant:${accessGrantId}`);
     await removeRecords("/ip/hotspot/ip-binding", records);
-    return { removed: records.length };
+    await removeRecords("/queue/simple", queues);
+    return { removed: records.length, queuesRemoved: queues.length };
   }
   const sites = Array.isArray(job.payload.sites) ? job.payload.sites as Array<{ hostname: string; includeSubdomains: boolean }> : [];
   await removeRecords("/ip/hotspot/walled-garden", await managedRecords("/ip/hotspot/walled-garden"));

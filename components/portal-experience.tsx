@@ -81,19 +81,19 @@ export function PortalExperience({ packages, portalContext }: { packages: WifiPa
 
   return (
     <div ref={root} className="portal-shell">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 py-5 md:px-8">
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 md:px-8 md:py-5">
         <BrandMark />
         <span className="flex items-center gap-2 text-xs font-semibold text-[var(--muted)]"><span className="size-2 rounded-full bg-[var(--green-bright)]" /> Network available</span>
       </header>
 
-      <main className="mx-auto grid w-full max-w-6xl gap-12 px-5 pb-16 pt-8 md:px-8 lg:grid-cols-[0.76fr_1.24fr] lg:pt-14">
+      <main className="mx-auto grid w-full max-w-6xl gap-7 px-4 pb-10 pt-2 md:gap-12 md:px-8 md:pb-16 md:pt-8 lg:grid-cols-[0.76fr_1.24fr] lg:pt-14">
         <section className="self-start" data-reveal>
-          <div className="portal-accent py-2 pl-5">
+          <div className="portal-accent py-1 pl-4 md:py-2 md:pl-5">
             <p className="text-xs font-bold uppercase text-[var(--orange)]">Bitcoin-powered access</p>
-            <h1 className="mt-4 max-w-lg text-4xl font-bold leading-[1.05] md:text-5xl">Connect to Bitcoin Valley.</h1>
+            <h1 className="mt-3 max-w-lg text-3xl font-bold leading-[1.1] md:mt-4 md:text-5xl">Connect to Bitcoin Valley.</h1>
           </div>
-          <p className="mt-7 max-w-md text-base leading-7 text-[var(--muted)]">Choose your time, pay over Lightning, and get online in seconds.</p>
-          <div className="mt-9 grid max-w-md grid-cols-3 gap-3 text-xs text-[var(--muted)]">
+          <p className="mt-4 max-w-md text-sm leading-6 text-[var(--muted)] md:mt-7 md:text-base md:leading-7">Choose your time, pay over Lightning, and get online in seconds.</p>
+          <div className="mt-5 hidden max-w-md grid-cols-3 gap-3 text-xs text-[var(--muted)] sm:grid md:mt-9">
             <span className="flex items-center gap-2"><Zap size={16} className="text-[var(--orange)]" /> Instant</span>
             <span className="flex items-center gap-2"><Check size={16} className="text-[var(--green-bright)]" /> Private</span>
             <span className="flex items-center gap-2"><Gauge size={16} className="text-[var(--gold)]" /> Fast</span>
@@ -107,13 +107,13 @@ export function PortalExperience({ packages, portalContext }: { packages: WifiPa
                 <div><p className="text-xs font-bold uppercase text-[var(--muted)]">Access passes</p><h2 className="mt-2 text-2xl font-bold">Select a plan</h2></div>
                 <Button variant="ghost" size="sm" onClick={() => setVoucherMode(true)}><Ticket size={15} /> Use voucher</Button>
               </div>
-              <div className="mt-5 grid gap-3 md:grid-cols-3">
+              <div className="mt-4 grid gap-2.5 md:mt-5 md:grid-cols-3 md:gap-3">
                 {packages.map((item) => (
-                  <button key={item.id} className="package-option p-5 text-left" data-selected={selectedId === item.id} onClick={() => setSelectedId(item.id)}>
+                  <button key={item.id} className="package-option p-4 text-left md:p-5" data-selected={selectedId === item.id} onClick={() => setSelectedId(item.id)}>
                     <span className="flex items-center justify-between gap-2"><strong className="text-sm">{item.name}</strong>{selectedId === item.id && <Check size={17} className="text-[var(--orange)]" />}</span>
-                    <span className="mt-7 block text-2xl font-bold text-[var(--orange)]">{formatSats(item.priceSats)}</span>
+                    <span className="package-price mt-3 block text-xl font-bold text-[var(--orange)] md:mt-7 md:text-2xl">{formatSats(item.priceSats)}</span>
                     <span className="mt-2 flex items-center gap-2 text-xs text-[var(--muted)]"><Clock3 size={14} /> {formatDuration(item.durationMinutes)}</span>
-                    <span className="mt-5 block text-xs leading-5 text-[var(--muted)]">{item.description}</span>
+                    <span className="package-description mt-2 hidden text-xs leading-5 text-[var(--muted)] md:mt-5 md:block">{item.description}</span>
                   </button>
                 ))}
               </div>

@@ -14,7 +14,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="flex items-center justify-between border-b border-[var(--line)] p-3 lg:hidden"><BrandMark /><span className="text-xs text-[var(--muted)]">Admin</span></div>
         <AdminNav />
         <div className="hidden border-t border-[var(--line)] p-4 lg:block">
-          <p className="truncate px-3 text-xs text-[var(--muted)]">{session.email}</p>
+          <p className="truncate px-3 text-xs text-[var(--muted)]">{session.deviceName}</p>
           <form action={logout}><Button type="submit" variant="ghost" className="mt-2 w-full justify-start"><LogOut size={16} /> Sign out</Button></form>
         </div>
       </aside>
@@ -28,4 +28,3 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     </div>
   );
 }
-

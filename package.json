@@ -22,6 +22,8 @@
     "@radix-ui/react-select": "latest",
     "@radix-ui/react-slot": "latest",
     "@radix-ui/react-switch": "latest",
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/server": "^13.3.2",
     "animejs": "latest",
     "bcryptjs": "latest",
     "class-variance-authority": "latest",

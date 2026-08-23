@@ -19,9 +19,9 @@ export async function addWhitelistSiteAction(formData: FormData) {
   const category = z.string().min(2).max(50).parse(formData.get("category"));
   const notes = z.string().max(240).optional().parse(String(formData.get("notes") ?? ""));
   const includeSubdomains = formData.get("includeSubdomains") === "on";
-  const [site] = await db.insert(whitelistedSites).values({ hostname, category, notes, includeSubdomains, createdBy: admin.email }).onConflictDoUpdate({ target: whitelistedSites.hostname, set: { enabled: true, category, notes, includeSubdomains, updatedAt: new Date() } }).returning();
+  const [site] = await db.insert(whitelistedSites).values({ hostname, category, notes, includeSubdomains, createdBy: admin.actor }).onConflictDoUpdate({ target: whitelistedSites.hostname, set: { enabled: true, category, notes, includeSubdomains, updatedAt: new Date() } }).returning();
   await queueSync();
-  await db.insert(auditLogs).values({ actor: admin.email, action: "whitelist.saved", entityType: "whitelisted_site", entityId: site.id, details: { hostname } });
+  await db.insert(auditLogs).values({ actor: admin.actor, action: "whitelist.saved", entityType: "whitelisted_site", entityId: site.id, details: { hostname } });
   revalidatePath("/admin/whitelist");
 }
 
@@ -31,7 +31,6 @@ export async function toggleWhitelistSiteAction(formData: FormData) {
   const enabled = formData.get("enabled") === "true";
   const [site] = await db.update(whitelistedSites).set({ enabled: !enabled, updatedAt: new Date() }).where(eq(whitelistedSites.id, id)).returning();
   await queueSync();
-  await db.insert(auditLogs).values({ actor: admin.email, action: "whitelist.toggled", entityType: "whitelisted_site", entityId: id, details: { hostname: site.hostname, enabled: !enabled } });
+  await db.insert(auditLogs).values({ actor: admin.actor, action: "whitelist.toggled", entityType: "whitelisted_site", entityId: id, details: { hostname: site.hostname, enabled: !enabled } });
   revalidatePath("/admin/whitelist");
 }
-

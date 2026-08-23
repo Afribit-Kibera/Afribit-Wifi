@@ -106,6 +106,7 @@ export const accessGrants = pgTable(
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     dataLimitMb: integer("data_limit_mb"),
     speedLimitKbps: integer("speed_limit_kbps"),
+    purpose: text("purpose").notNull().default("paid"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -197,3 +198,37 @@ export const auditLogs = pgTable(
   (table) => [index("audit_logs_created_idx").on(table.createdAt)],
 );
 
+export const adminPasskeys = pgTable(
+  "admin_passkeys",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    credentialId: text("credential_id").notNull(),
+    publicKey: text("public_key").notNull(),
+    counter: integer("counter").notNull().default(0),
+    transports: jsonb("transports").$type<string[]>().notNull().default([]),
+    deviceName: text("device_name").notNull(),
+    deviceType: text("device_type").notNull(),
+    backedUp: boolean("backed_up").notNull().default(false),
+    aaguid: text("aaguid"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("admin_passkeys_credential_uidx").on(table.credentialId),
+    index("admin_passkeys_active_idx").on(table.revokedAt),
+  ],
+);
+
+export const adminEnrollmentCodes = pgTable(
+  "admin_enrollment_codes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    codeHash: text("code_hash").notNull(),
+    createdBy: text("created_by").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    usedAt: timestamp("used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("admin_enrollment_codes_hash_uidx").on(table.codeHash), index("admin_enrollment_codes_expiry_idx").on(table.expiresAt)],
+);

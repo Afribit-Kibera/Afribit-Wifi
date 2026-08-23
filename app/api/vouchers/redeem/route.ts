@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     durationMinutes: record.batch.accessDurationMinutes,
     dataLimitMb: record.batch.dataLimitMb,
     speedLimitKbps: record.batch.speedLimitKbps,
+    purpose: "voucher",
   });
   return Response.json({ accessGrantId: grant.id }, { status: 201 });
 }
-

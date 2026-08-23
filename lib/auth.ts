@@ -1,7 +1,9 @@
-import { compare } from "bcryptjs";
+import { and, eq, isNull } from "drizzle-orm";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { db } from "./db";
+import { adminPasskeys } from "./db/schema";
 
 const COOKIE_NAME = "bv_admin_session";
 
@@ -11,17 +13,10 @@ function secretKey() {
   return new TextEncoder().encode(secret);
 }
 
-export async function verifyAdminCredentials(email: string, password: string) {
-  const expectedEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const passwordHash = process.env.ADMIN_PASSWORD_HASH;
-  if (!expectedEmail || !passwordHash) return false;
-  if (email.trim().toLowerCase() !== expectedEmail) return false;
-  return compare(password, passwordHash);
-}
-
-export async function createAdminSession(email: string) {
-  const token = await new SignJWT({ role: "admin", email })
+export async function createAdminSession(credentialId: string, deviceName: string) {
+  const token = await new SignJWT({ role: "admin", deviceName })
     .setProtectedHeader({ alg: "HS256" })
+    .setSubject(credentialId)
     .setIssuedAt()
     .setExpirationTime("12h")
     .sign(secretKey());
@@ -48,8 +43,19 @@ export async function getAdminSession() {
 
   try {
     const { payload } = await jwtVerify(token, secretKey());
-    if (payload.role !== "admin" || typeof payload.email !== "string") return null;
-    return { email: payload.email };
+    if (payload.role !== "admin" || typeof payload.sub !== "string" || typeof payload.deviceName !== "string") return null;
+    const [passkey] = await db
+      .select({ id: adminPasskeys.id, deviceName: adminPasskeys.deviceName })
+      .from(adminPasskeys)
+      .where(and(eq(adminPasskeys.credentialId, payload.sub), isNull(adminPasskeys.revokedAt)))
+      .limit(1);
+    if (!passkey) return null;
+    return {
+      credentialId: payload.sub,
+      passkeyId: passkey.id,
+      deviceName: passkey.deviceName,
+      actor: `passkey:${passkey.deviceName}`,
+    };
   } catch {
     return null;
   }
@@ -60,4 +66,3 @@ export async function requireAdmin() {
   if (!session) redirect("/admin/login");
   return session;
 }
-

@@ -25,7 +25,7 @@ export async function createPackageAction(formData: FormData) {
     dataLimitMb: input.dataLimitMb === "" ? null : input.dataLimitMb,
     speedLimitKbps: input.speedLimitKbps === "" ? null : input.speedLimitKbps,
   }).returning();
-  await db.insert(auditLogs).values({ actor: admin.email, action: "package.created", entityType: "package", entityId: created.id, details: { name: created.name } });
+  await db.insert(auditLogs).values({ actor: admin.actor, action: "package.created", entityType: "package", entityId: created.id, details: { name: created.name } });
   revalidatePath("/admin/packages");
   revalidatePath("/");
 }
@@ -35,8 +35,7 @@ export async function togglePackageAction(formData: FormData) {
   const id = z.string().uuid().parse(formData.get("id"));
   const active = formData.get("active") === "true";
   await db.update(packages).set({ active: !active, updatedAt: new Date() }).where(eq(packages.id, id));
-  await db.insert(auditLogs).values({ actor: admin.email, action: "package.toggled", entityType: "package", entityId: id, details: { active: !active } });
+  await db.insert(auditLogs).values({ actor: admin.actor, action: "package.toggled", entityType: "package", entityId: id, details: { active: !active } });
   revalidatePath("/admin/packages");
   revalidatePath("/");
 }
-
