@@ -1,0 +1,12 @@
+.vercel/
+.env*
+!.env.example
+!.env.gateway.example
+node_modules/
+.next/
+out/
+coverage/
+artifacts/
+*.log
+*.tsbuildinfo
+drizzle/meta/_journal.json.bak
