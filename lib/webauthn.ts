@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
@@ -10,8 +10,7 @@ type ChallengePayload = {
   purpose: WebAuthnPurpose;
   challenge: string;
   deviceName?: string;
-  bootstrap?: boolean;
-  authorizedBy?: string;
+  deviceSlot?: number;
   enrollmentCodeId?: string;
 };
 
@@ -63,14 +62,6 @@ export async function consumeWebAuthnChallenge(expectedPurpose: WebAuthnPurpose)
   const { payload } = await jwtVerify(token, secretKey());
   if (payload.purpose !== expectedPurpose || typeof payload.challenge !== "string") throw new Error("Invalid security request");
   return payload as typeof payload & ChallengePayload;
-}
-
-export function verifyEnrollmentCode(candidate: string) {
-  const expected = process.env.ADMIN_ENROLLMENT_SECRET;
-  if (!expected || !candidate) return false;
-  const expectedHash = createHash("sha256").update(expected).digest();
-  const candidateHash = createHash("sha256").update(candidate).digest();
-  return timingSafeEqual(expectedHash, candidateHash);
 }
 
 export function hashEnrollmentCode(code: string) {

@@ -133,8 +133,9 @@ Acceptance criteria:
 ### P0: Admin Dashboard
 
 - Admins must sign in with an approved platform passkey using fingerprint, face recognition, Windows Hello, or the device PIN; email/password login is not used.
-- The first admin device must require a private bootstrap enrollment code. An approved admin can generate a ten-minute, single-use pairing code to enroll each additional phone or laptop.
-- Admins must be able to name, inspect, and revoke approved passkeys. The current device cannot revoke itself.
+- Exactly three admin device slots are provisioned out of band by a database operator. Each slot receives a high-entropy, single-use pairing code and an operator-assigned device name.
+- Admins can never self-register, create pairing codes, or add devices from the admin portal. First use on every approved phone or laptop requires its assigned pairing code and a platform passkey.
+- Admins must be able to inspect and revoke approved passkeys. The current device cannot revoke itself. Replacing a revoked device requires a new out-of-band database provisioning operation.
 - Admins must see packages, invoices, active sessions, failed authorizations, and recent activity.
 - Admins must be able to manually grant, revoke, or extend access.
 - Admins must create voucher batches with quantity, sale amount in sats, access duration, optional speed/data caps, validity window, code prefix, and per-code redemption limit.
@@ -240,7 +241,6 @@ Required environment variables should include:
 - `BTCPAY_WEBHOOK_SECRET`
 - `DATABASE_URL`
 - `AUTH_SECRET`
-- `ADMIN_ENROLLMENT_SECRET`
 - `WEBAUTHN_RP_ID`
 - `WEBAUTHN_ORIGINS`
 - `GATEWAY_AGENT_TOKEN`
@@ -289,6 +289,7 @@ The walled garden should be tested on Android, iOS, Windows, and macOS captive p
 ## 13. Open Questions
 
 - What exact RouterOS version and API mode will be used in production?
+- Which Bitcoin wallet and Lightning source will be linked to the BTCPay store for customer settlement?
 - Should the first release use MAC authorization, Hotspot users, cookies, or IP bindings?
 - What packages and prices should launch first?
 - Should access be time-only, data-capped, speed-limited, or a combination?

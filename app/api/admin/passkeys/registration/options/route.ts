@@ -1,25 +1,22 @@
 import { generateRegistrationOptions } from "@simplewebauthn/server";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { getAdminSession } from "@/lib/auth";
+import { MAX_ADMIN_DEVICES, isAdminDeviceSlot } from "@/lib/admin-devices";
 import { db } from "@/lib/db";
 import { adminEnrollmentCodes, adminPasskeys } from "@/lib/db/schema";
-import { assertTrustedOrigin, hashEnrollmentCode, setWebAuthnChallenge, verifyEnrollmentCode, webAuthnConfig } from "@/lib/webauthn";
+import { assertTrustedOrigin, hashEnrollmentCode, setWebAuthnChallenge, webAuthnConfig } from "@/lib/webauthn";
 
-const inputSchema = z.object({ deviceName: z.string().trim().min(2).max(80), enrollmentCode: z.string().optional() });
+const inputSchema = z.object({ enrollmentCode: z.string().trim().min(8).max(120) });
 
 export async function POST(request: Request) {
   try {
     assertTrustedOrigin(request);
     const input = inputSchema.parse(await request.json());
-    const session = await getAdminSession();
     const passkeys = await db.select().from(adminPasskeys).where(isNull(adminPasskeys.revokedAt));
-    const bootstrap = passkeys.length === 0;
-    if (bootstrap && !verifyEnrollmentCode(input.enrollmentCode ?? "")) return Response.json({ error: "Enrollment code is incorrect" }, { status: 401 });
-    const [enrollmentCode] = !bootstrap && !session && input.enrollmentCode
-      ? await db.select().from(adminEnrollmentCodes).where(and(eq(adminEnrollmentCodes.codeHash, hashEnrollmentCode(input.enrollmentCode)), isNull(adminEnrollmentCodes.usedAt), gt(adminEnrollmentCodes.expiresAt, new Date()))).limit(1)
-      : [];
-    if (!bootstrap && !session && !enrollmentCode) return Response.json({ error: "Pairing code is invalid or expired" }, { status: 401 });
+    if (passkeys.length >= MAX_ADMIN_DEVICES) return Response.json({ error: "All admin device slots are already assigned" }, { status: 409 });
+    const [enrollmentCode] = await db.select().from(adminEnrollmentCodes).where(and(eq(adminEnrollmentCodes.codeHash, hashEnrollmentCode(input.enrollmentCode)), isNull(adminEnrollmentCodes.usedAt), gt(adminEnrollmentCodes.expiresAt, new Date()))).limit(1);
+    if (!enrollmentCode || !isAdminDeviceSlot(enrollmentCode.slot)) return Response.json({ error: "Pairing code is invalid or expired" }, { status: 401 });
+    if (passkeys.some((passkey) => passkey.slot === enrollmentCode.slot)) return Response.json({ error: "This admin device slot is already assigned" }, { status: 409 });
     const { rpID } = webAuthnConfig();
     const options = await generateRegistrationOptions({
       rpName: "Bitcoin Valley WiFi",
@@ -32,7 +29,7 @@ export async function POST(request: Request) {
       authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "required", userVerification: "required" },
       preferredAuthenticatorType: "localDevice",
     });
-    await setWebAuthnChallenge({ purpose: "registration", challenge: options.challenge, deviceName: input.deviceName, bootstrap, authorizedBy: session?.credentialId, enrollmentCodeId: enrollmentCode?.id });
+    await setWebAuthnChallenge({ purpose: "registration", challenge: options.challenge, deviceName: enrollmentCode.deviceName, deviceSlot: enrollmentCode.slot, enrollmentCodeId: enrollmentCode.id });
     return Response.json(options, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Unable to register device" }, { status: 400 });

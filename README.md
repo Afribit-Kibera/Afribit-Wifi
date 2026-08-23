@@ -25,14 +25,13 @@ The portal runs at `http://localhost:3000`; passkey admin is at `/admin`; health
 
 ## Required Production Activation
 
-1. Rotate the previously shared BTCPay API key.
-2. Create a BTCPay webhook for `https://wifi.afribit.africa/api/webhooks/btcpay` and copy its new signing secret.
-3. Use `ADMIN_ENROLLMENT_SECRET` from the ignored `.env.production.enrollment.local` file once at `/admin/login` to register the first passkey. Generate short-lived codes under Admin > Security for later devices.
-4. Review and import `mikrotik/bitcoin-valley-hotspot.rsc`, then upload `mikrotik/hotspot-bv` to the router.
-5. Copy `.env.gateway.example` to `.env.gateway` on the LAN machine and fill the gateway and RouterOS credentials.
-6. Run `npm run gateway:dev` under a process manager or system service.
+1. In BTCPay store settings, connect the Bitcoin wallet and Lightning payment source that will receive customer funds. Invoice creation cannot work until the store has a wallet.
+2. Retrieve one of the three operator-only codes from `.env.admin-pairing-codes.local` and use it once at `/admin/login` on its assigned device.
+3. Review and import `mikrotik/bitcoin-valley-hotspot.rsc`, then upload `mikrotik/hotspot-bv` to the router.
+4. Copy `.env.gateway.example` to `.env.gateway` on the LAN machine and fill the gateway and RouterOS credentials.
+5. Run `npm run gateway:dev` under a process manager or system service.
 
-The BTCPay API key needs only invoice create/view permissions. Never expose the MikroTik API publicly.
+Admin codes are created out of band with `npm run admin:provision-devices`; there is no admin self-registration or in-app code generator. This application uses BTCPay invoice create/view and webhook modification permissions. Never expose the MikroTik API publicly.
 
 ## Verification
 

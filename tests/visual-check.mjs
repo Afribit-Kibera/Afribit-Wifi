@@ -39,7 +39,7 @@ await adminPage.goto(`${baseUrl}/admin`, { waitUntil: "networkidle" });
 const redirectedToLogin = adminPage.url().includes("/admin/login");
 
 await adminPage.screenshot({ path: "artifacts/admin-login-desktop.png", fullPage: true });
-const hasPasskeyControl = await adminPage.getByRole("button", { name: /Verify this device|Register admin device/ }).isVisible();
+const hasPasskeyControl = await adminPage.getByRole("button", { name: /Verify this device|Approve this device/ }).isVisible();
 results.push({
   name: "admin",
   redirectedToLogin,
@@ -54,4 +54,4 @@ await adminContext.close();
 await browser.close();
 
 console.log(JSON.stringify(results, null, 2));
-if (results.some((item) => item.status && item.status >= 400) || results.some((item) => Array.isArray(item.errors) && item.errors.length > 0)) process.exit(1);
+if (!hasPasskeyControl || results.some((item) => item.status && item.status >= 400) || results.some((item) => Array.isArray(item.errors) && item.errors.length > 0)) process.exit(1);

@@ -10,6 +10,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const paymentStatusEnum = pgEnum("payment_status", [
   "new",
@@ -203,6 +204,7 @@ export const adminPasskeys = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     credentialId: text("credential_id").notNull(),
+    slot: integer("slot").notNull(),
     publicKey: text("public_key").notNull(),
     counter: integer("counter").notNull().default(0),
     transports: jsonb("transports").$type<string[]>().notNull().default([]),
@@ -216,6 +218,7 @@ export const adminPasskeys = pgTable(
   },
   (table) => [
     uniqueIndex("admin_passkeys_credential_uidx").on(table.credentialId),
+    uniqueIndex("admin_passkeys_active_slot_uidx").on(table.slot).where(sql`${table.revokedAt} is null`),
     index("admin_passkeys_active_idx").on(table.revokedAt),
   ],
 );
@@ -225,6 +228,8 @@ export const adminEnrollmentCodes = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     codeHash: text("code_hash").notNull(),
+    slot: integer("slot").notNull(),
+    deviceName: text("device_name").notNull(),
     createdBy: text("created_by").notNull(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     usedAt: timestamp("used_at", { withTimezone: true }),

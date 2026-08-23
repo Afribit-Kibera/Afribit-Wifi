@@ -12,6 +12,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
+    "admin:provision-devices": "tsx --env-file=.env.local scripts/provision-admin-devices.ts",
     "gateway:dev": "tsx --env-file=.env.gateway gateway-agent/index.ts"
   },
   "dependencies": {

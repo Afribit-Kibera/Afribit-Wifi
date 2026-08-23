@@ -4,7 +4,8 @@
 
 - Completed: Next.js application, Vercel project, Neon PostgreSQL, schema, seed data, passkey-only admin authentication, mobile-first portal, package management, payment ledger, voucher batches and export, free-site policy, manual access controls, BTCPay integration code, short payment connectivity grants, gateway job API, and local MikroTik agent.
 - Verified: lint, TypeScript, production build, database health, authenticated admin flow, desktop portal, mobile portal, and voucher admin controls.
-- Pending external activation: rotated BTCPay API key and webhook secret, first-device passkey enrollment, MikroTik REST credentials, gateway agent installation on the LAN, router import, and DNS record creation.
+- Activated: production DNS/TLS, current BTCPay API key, signed BTCPay webhook, Neon security schema, and three operator-provisioned admin device slots.
+- Pending external activation: connect the receiving wallet and Lightning source to the BTCPay store, enroll the approved devices, provide MikroTik credentials, install the gateway agent on the LAN, and import the router configuration.
 - Deferred by product decision: M-Pesa/Bitika and L402 remain later phases.
 
 ## 1. Recommended Technical Direction
@@ -53,7 +54,6 @@ BTCPAY_STORE_ID=
 BTCPAY_API_KEY=
 BTCPAY_WEBHOOK_SECRET=
 AUTH_SECRET=
-ADMIN_ENROLLMENT_SECRET=
 WEBAUTHN_RP_ID=wifi.afribit.africa
 WEBAUTHN_ORIGINS=https://wifi.afribit.africa
 GATEWAY_AGENT_TOKEN=
@@ -222,7 +222,7 @@ Objective: support operational management.
 Tasks:
 
 - Add admin authentication.
-- Use platform WebAuthn passkeys with required local user verification, revocation, and single-use pairing codes for additional devices.
+- Use platform WebAuthn passkeys with required local user verification and exactly three database-provisioned, single-use device pairing codes. Do not expose self-registration or pairing-code creation in the portal.
 - Build dashboard overview:
   - active sessions
   - paid invoices
@@ -359,9 +359,9 @@ Prices should live in the database, not code.
 
 ## 16. Immediate Next Steps
 
-1. Add the documented DNS records for `wifi.afribit.africa`.
-2. Open `/admin/login` on the production domain and enroll the first approved device with the private Vercel enrollment secret.
-3. Rotate and configure BTCPay credentials, then create the production webhook.
+1. Open `/admin/login` on each of the three approved devices and enroll it with its assigned operator pairing code.
+2. Connect the receiving Bitcoin wallet and Lightning source under the BTCPay store settings, then rerun invoice and webhook commissioning.
+3. Rotate the production BTCPay key after commissioning.
 4. Upgrade the RB951 to stable RouterOS v7, back it up, review and import `mikrotik/bitcoin-valley-hotspot.rsc`.
 5. Upload `mikrotik/hotspot-bv` to the router and install the LAN gateway agent.
 6. Test unpaid portal, same-phone Lightning payment, voucher, expiry, and revocation on real Android and iOS devices.
