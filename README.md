@@ -31,7 +31,7 @@ The portal runs at `http://localhost:3000`; passkey admin is at `/admin`; health
 4. Copy `.env.gateway.example` to `.env.gateway` on the LAN machine and fill the gateway and RouterOS credentials.
 5. Run `npm run gateway:dev` under a process manager or system service.
 
-Admin codes are created out of band with `npm run admin:provision-devices`; there is no admin self-registration or in-app code generator. This application uses BTCPay invoice create/view and webhook modification permissions. Never expose the MikroTik API publicly.
+Admin codes are created out of band with `npm run admin:provision-devices`; there is no admin self-registration or in-app code generator. After revoking a lost device, a database operator can provision only that slot with `npm run admin:provision-devices -- --slot 2 --name "Replacement laptop"`. This application uses BTCPay invoice create/view and webhook modification permissions. Never expose the MikroTik API publicly.
 
 ## Verification
 
