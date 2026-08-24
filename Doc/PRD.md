@@ -295,7 +295,7 @@ The walled garden should be tested on Android, iOS, Windows, and macOS captive p
 - Should access be time-only, data-capped, speed-limited, or a combination?
 - Where will the gateway agent run on the local network?
 - Which managed PostgreSQL provider should be used?
-- Which local device will run the gateway agent at static address `10.20.0.2`?
+- Which local device will run the gateway agent at static address `10.5.50.252`?
 - Will M-Pesa/Bitika be part of launch or a fast follow?
 
 ## 14. Release Criteria

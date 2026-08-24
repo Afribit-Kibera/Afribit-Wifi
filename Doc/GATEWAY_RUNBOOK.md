@@ -1,5 +1,30 @@
 # MikroTik Gateway Runbook
 
+## Commissioned Test Router - 2026-08-24
+
+This RB951Ui-2HnD was commissioned in place without a factory reset.
+
+- RouterOS: `7.20.8 (long-term)`
+- WAN: `ether1`, DHCP from home network, observed as `192.168.1.234/24`
+- HotSpot LAN: `bridge1`, gateway `10.5.50.1/24`
+- Client pool: `10.5.50.2-10.5.50.254`
+- Local gateway agent host: `10.5.50.252`, Ethernet MAC `AC:F4:66:BA:FA:D7`
+- HotSpot server/profile: `hotspot1` / `hsprof1`
+- HotSpot DNS name: `login.wifi.afribit.africa`
+- Portal domain: `https://wifi.afribit.africa`
+- BTCPay domain: `https://pay.insats.org`
+
+Pre-change rollback files are stored on the router as:
+
+- `before-bitcoin-valley.backup`
+- `before-bitcoin-valley.rsc`
+
+RouterOS REST is exposed only on the HotSpot LAN to `10.5.50.252/32` through the `www` service. The `bitcoin-valley-agent` RouterOS user is restricted to `10.5.50.252/32` and uses the `bitcoin-valley-agent` group with `read,write,web,api,rest-api` policy. Do not forward RouterOS management ports from WAN.
+
+The production gateway token is stored in Vercel Production as `GATEWAY_AGENT_TOKEN` and locally in ignored `.env.gateway` for the bench agent. If the gateway token changes in Vercel, update `.env.gateway` and redeploy production before restarting the agent.
+
+End-to-end commissioning test passed by queueing a production `sync_walled_garden` job and processing it through the local gateway agent into the MikroTik.
+
 ## 1. How An Unpaid Phone Reaches Payment
 
 The phone does not need mobile data. The MikroTik remains connected to the internet through its WAN, but HotSpot blocks general traffic until authorization. Its walled garden permits only:
@@ -16,12 +41,12 @@ When an invoice is created, the backend can also issue one three-minute 128 Kbps
 ```text
 Internet/ONT -> MikroTik WAN
 MikroTik LAN bridge -> Huawei access points in bridge/AP mode
-                    -> gateway agent machine at 10.20.0.2
-WiFi clients       -> 10.20.0.10-10.20.0.254
-MikroTik gateway   -> 10.20.0.1
+                    -> gateway agent machine at 10.5.50.252
+WiFi clients       -> 10.5.50.2-10.5.50.254
+MikroTik gateway   -> 10.5.50.1
 ```
 
-For bench testing on a home connection, connect the home router LAN to MikroTik `ether1` and connect this computer directly to MikroTik `ether2`. Keep the computer's Wi-Fi on the home network for internet access. With the factory configuration, the MikroTik management address is normally `192.168.88.1` on `ether2`.
+For this bench router, connect the home router LAN to MikroTik `ether1` and connect this computer directly to MikroTik `ether2`. Keep the computer's Wi-Fi on the home network for internet access while testing payments and deployments. A future clean site can use a different subnet, but `mikrotik/bitcoin-valley-hotspot.rsc`, `.env.gateway`, and the gateway agent static address must be changed together.
 
 WinBox is a graphical RouterOS client, not a terminal protocol. Commissioning can be completed from this computer with SSH, SCP, and RouterOS REST once the router is physically connected. The operator must provide the factory/admin password and explicitly approve any factory reset; router passwords are never stored in the repository.
 
@@ -32,8 +57,8 @@ On every Huawei AP, disable DHCP, NAT, and routing. Give each AP a fixed managem
 1. Export a backup with `/export file=before-bitcoin-valley` and create a binary backup in WinBox.
 2. Upgrade the RB951 to a stable RouterOS v7 release. The gateway agent uses REST, which is a RouterOS v7 feature.
 3. Confirm WAN internet access already works.
-4. Confirm the customer LAN bridge is named `bridge`, or edit `hotspotInterface` in `mikrotik/bitcoin-valley-hotspot.rsc`.
-5. Reserve `10.20.0.2` for the gateway agent, or change `agentAddress`, `.env.gateway`, and the subnet variables together.
+4. Confirm the customer LAN bridge is named `bridge1`, or edit `hotspotInterface` in `mikrotik/bitcoin-valley-hotspot.rsc`.
+5. Reserve `10.5.50.252` for the gateway agent, or change `agentAddress`, `.env.gateway`, and the subnet variables together.
 
 Do not import the script into a live router until its interface and subnet values have been reviewed. It does not erase configuration, but duplicate DHCP or overlapping subnets can interrupt service.
 
@@ -42,7 +67,7 @@ Do not import the script into a live router until its interface and subnet value
 In WinBox:
 
 1. Open **Files** and upload `mikrotik/bitcoin-valley-hotspot.rsc`.
-2. Upload the whole local folder `mikrotik/hotspot-bv` as `/flash/hotspot-bv`.
+2. Upload the files from `mikrotik/hotspot-bv` into the router's `hotspot` directory.
 3. Open **Terminal** and validate the script on RouterOS 7.16 or newer:
 
 ```routeros
@@ -65,7 +90,7 @@ The import creates a disabled least-privilege REST account. Set a unique passwor
 /user set [find where name="bitcoin-valley-agent"] password="USE-A-LONG-RANDOM-PASSWORD" disabled=no
 ```
 
-The script initially enables HTTP REST only from `10.20.0.2/32`. This is acceptable only on the isolated LAN during commissioning. Production should install a trusted router certificate, enable `www-ssl`, restrict it to the same address, disable `www`, and set `MIKROTIK_USE_TLS=true`.
+The script initially enables HTTP REST only from `10.5.50.252/32`. This is acceptable only on the isolated LAN during commissioning and bench testing. Production should install a trusted router certificate, enable `www-ssl`, restrict it to the same address, disable `www`, and set `MIKROTIK_USE_TLS=true`.
 
 ## 6. Install The Gateway Agent
 
@@ -83,7 +108,7 @@ Configure:
 GATEWAY_API_URL=https://wifi.afribit.africa
 GATEWAY_AGENT_TOKEN=<value from Vercel>
 GATEWAY_POLL_INTERVAL_MS=5000
-MIKROTIK_HOST=10.20.0.1
+MIKROTIK_HOST=10.5.50.1
 MIKROTIK_USERNAME=bitcoin-valley-agent
 MIKROTIK_PASSWORD=<router agent password>
 MIKROTIK_USE_TLS=false
@@ -93,7 +118,7 @@ Run the agent with Windows Task Scheduler, NSSM, systemd, or another process sup
 
 ## 7. Captive Portal Behavior
 
-`/flash/hotspot-bv/login.html` is a dependency-free local page. It automatically forwards MikroTik values (`mac`, `ip`, `link-login`, and `link-orig`) to the cloud portal. No external CSS or JavaScript is needed before that redirect.
+`hotspot/login.html` is a dependency-free local page. It automatically forwards MikroTik values (`mac`, `ip`, `link-login`, and `link-orig`) to the cloud portal. No external CSS or JavaScript is needed before that redirect.
 
 For the most reliable Android/iOS captive popup, install a valid certificate on the HotSpot profile for `login.wifi.afribit.africa`. RouterOS v7.3 and later then advertises the captive portal through DHCP/RFC 7710 using `api.json`. Without that certificate, normal HTTP captive checks still redirect, but popup behavior varies by device.
 

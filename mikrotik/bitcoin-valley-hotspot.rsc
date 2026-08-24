@@ -1,17 +1,17 @@
 # Bitcoin Valley WiFi - RouterOS v7 HotSpot overlay
 # Review the variables below before importing. This script does not reset the router.
 
-:local hotspotInterface "bridge"
-:local hotspotAddress "10.20.0.1/24"
-:local hotspotNetwork "10.20.0.0/24"
-:local clientPool "10.20.0.10-10.20.0.254"
-:local gatewayAddress "10.20.0.1"
-:local agentAddress "10.20.0.2/32"
+:local hotspotInterface "bridge1"
+:local hotspotAddress "10.5.50.1/24"
+:local hotspotNetwork "10.5.50.0/24"
+:local clientPool "10.5.50.2-10.5.50.254"
+:local gatewayAddress "10.5.50.1"
+:local agentAddress "10.5.50.252/32"
 :local localPortalName "login.wifi.afribit.africa"
-:local poolName "bv-hotspot-pool"
-:local dhcpName "bv-hotspot-dhcp"
-:local profileName "bv-hotspot-profile"
-:local serverName "bv-hotspot"
+:local poolName "hs-pool-7"
+:local dhcpName "dhcp1"
+:local profileName "hsprof1"
+:local serverName "hotspot1"
 
 :if ([:len [/interface find where name=$hotspotInterface]] = 0) do={ :error ("Missing interface: " . $hotspotInterface) }
 
@@ -38,7 +38,7 @@
 }
 
 :if ([:len [/ip hotspot profile find where name=$profileName]] = 0) do={
-  /ip hotspot profile add name=$profileName hotspot-address=$gatewayAddress dns-name=$localPortalName html-directory="flash/hotspot-bv" login-by=http-chap https-redirect=no
+  /ip hotspot profile add name=$profileName hotspot-address=$gatewayAddress dns-name=$localPortalName html-directory="hotspot" login-by=http-chap https-redirect=no
 }
 
 :if ([:len [/ip hotspot find where name=$serverName]] = 0) do={
@@ -52,7 +52,7 @@
 }
 
 :if ([:len [/user group find where name="bitcoin-valley-agent"]] = 0) do={
-  /user group add name="bitcoin-valley-agent" policy=read,write,rest-api
+  /user group add name="bitcoin-valley-agent" policy=read,write,web,api,rest-api
 }
 
 :if ([:len [/user find where name="bitcoin-valley-agent"]] = 0) do={
@@ -63,4 +63,4 @@
 # after installing a trusted certificate on the router.
 /ip service set www address=$agentAddress disabled=no
 
-:put "Bitcoin Valley WiFi HotSpot overlay installed. Upload hotspot-bv, set the agent password, then enable the agent user."
+:put "Bitcoin Valley WiFi HotSpot overlay installed. Upload mikrotik/hotspot-bv files into the router hotspot directory, set the agent password, then enable the agent user."

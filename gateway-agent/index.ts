@@ -100,6 +100,13 @@ async function poll() {
   }
 }
 
-console.log("Bitcoin Valley WiFi gateway agent started");
-await poll();
-setInterval(poll, config.pollInterval);
+async function main() {
+  console.log("Bitcoin Valley WiFi gateway agent started");
+  await poll();
+  setInterval(poll, config.pollInterval);
+}
+
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : error);
+  process.exit(1);
+});
