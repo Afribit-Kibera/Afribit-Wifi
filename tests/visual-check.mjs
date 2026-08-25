@@ -13,14 +13,29 @@ async function verifyViewport(name, viewport) {
   page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
   page.on("pageerror", (error) => errors.push(error.message));
   const response = await page.goto(baseUrl, { waitUntil: "networkidle" });
+  await page.waitForTimeout(1000);
+  await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
+  const paymentActionTop = await page.getByRole("button", { name: "Continue" }).evaluate((element) => Math.round(element.getBoundingClientRect().top));
+  await page.screenshot({ path: `artifacts/portal-${name}-viewport.png` });
   await page.screenshot({ path: `artifacts/portal-${name}.png`, fullPage: true });
+  const thirdPlan = page.getByRole("radio").nth(2);
+  await thirdPlan.click();
+  const planSelectionWorks = await thirdPlan.getAttribute("aria-checked") === "true";
+  const selectedSummaryUpdates = (await page.locator(".pass-checkout-summary").textContent())?.includes("4 hr - KES 20") ?? false;
+  await page.getByRole("button", { name: "Have a voucher?" }).click();
+  const voucherModeWorks = await page.getByLabel("Voucher code").isVisible();
+  await page.getByRole("button", { name: "Back" }).click();
   results.push({
     name: `portal-${name}`,
     status: response?.status(),
-    heading: await page.getByRole("heading", { name: "3 West Satenet" }).isVisible(),
+    heading: await page.getByRole("heading", { name: "Get connected" }).isVisible(),
     packageCount: await page.locator(".voucher-card").count(),
     overflow: await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth),
-    paymentActionTop: await page.getByRole("button", { name: "Pay" }).evaluate((element) => Math.round(element.getBoundingClientRect().top)),
+    paymentActionTop,
+    planSelectionWorks,
+    selectedSummaryUpdates,
+    voucherModeWorks,
     errors,
   });
   await context.close();

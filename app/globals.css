@@ -62,204 +62,365 @@ a { color: inherit; text-decoration: none; }
     var(--background);
 }
 
+.pass-portal {
+  --pass-bg: #f6f7f4;
+  --pass-surface: #ffffff;
+  --pass-ink: #101820;
+  --pass-muted: #66706d;
+  --pass-line: #d9deda;
+  --pass-green: #11823b;
+  --pass-gold: #d7a825;
+  --pass-red: #d63535;
+  min-height: 100svh;
+  overflow-x: hidden;
+  background: var(--pass-bg);
+  color: var(--pass-ink);
+}
+
+.pass-header {
+  border-bottom: 1px solid #e4e7e3;
+  background: var(--pass-surface);
+}
+
+.pass-header-inner {
+  display: flex;
+  width: min(1180px, 100%);
+  min-height: 72px;
+  margin: 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+}
+
+.pass-portal .brand-symbol {
+  width: 42px;
+  height: 42px;
+  border: 0;
+  background: transparent;
+  color: var(--pass-green);
+}
+
+.pass-portal .brand-symbol svg { width: 30px; height: 30px; }
+
+.pass-portal .brand-name { color: var(--pass-ink); font-size: 15px; }
+.pass-portal .brand-kicker { color: #6b736f; }
+
 .network-pill {
   display: inline-flex;
-  min-height: 32px;
+  min-height: 36px;
   align-items: center;
-  gap: 8px;
-  border: 1px solid rgb(255 255 255 / 9%);
-  border-radius: 999px;
-  background: rgb(8 9 7 / 58%);
-  padding: 0 11px;
-  color: var(--muted);
+  gap: 9px;
+  color: #4f5955;
   font-size: 12px;
   font-weight: 700;
-  backdrop-filter: blur(12px);
+  white-space: nowrap;
 }
 
-.portal-hero {
-  position: relative;
-  overflow: hidden;
-  border-radius: 8px;
-  border: 1px solid rgb(255 255 255 / 9%);
-  background:
-    linear-gradient(135deg, rgb(16 18 15 / 92%), rgb(16 18 15 / 68%)),
-    linear-gradient(90deg, var(--green), var(--gold), var(--red), var(--orange));
-  padding: 24px;
-  box-shadow: 0 24px 80px rgb(0 0 0 / 28%);
-}
-
-.signal-art {
-  position: absolute;
-  inset: auto -40px -92px auto;
-  width: 260px;
-  height: 260px;
-  opacity: 0.68;
-  transform: rotate(-10deg);
-}
-
-.signal-art span {
-  position: absolute;
-  inset: 0;
-  border: 2px solid transparent;
-  border-top-color: rgb(247 147 26 / 72%);
-  border-left-color: rgb(88 199 125 / 28%);
+.network-dot {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
   border-radius: 50%;
+  background: var(--pass-green);
 }
 
-.signal-art span:nth-child(2) {
-  inset: 42px;
-  border-top-color: rgb(221 181 74 / 82%);
+.network-label-short { display: none; }
+
+.pass-main { width: 100%; }
+
+.pass-hero {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2.35 / 1;
+  overflow: hidden;
+  background: #dfe8eb;
 }
 
-.signal-art span:nth-child(3) {
-  inset: 84px;
-  border-top-color: rgb(88 199 125 / 82%);
+.pass-hero-image {
+  object-fit: cover;
+  object-position: 58% center;
 }
 
-.hero-chip {
+.pass-hero h1 {
+  position: absolute;
+  top: 50%;
+  left: 9%;
+  margin: 0;
+  color: var(--pass-ink);
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.pass-content {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 26px 18px 124px;
+}
+
+.pass-heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.pass-heading-row h2 {
+  margin: 0;
+  color: var(--pass-ink);
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.pass-heading-row p {
+  margin: 7px 0 0;
+  color: var(--pass-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.voucher-link {
   display: inline-flex;
-  min-height: 34px;
+  min-height: 44px;
+  flex: 0 0 auto;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border: 1px solid rgb(255 255 255 / 9%);
-  border-radius: 8px;
-  background: rgb(255 255 255 / 4%);
+  gap: 7px;
+  border: 0;
+  background: transparent;
+  color: var(--pass-green);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 750;
 }
 
-.voucher-board {
-  border-radius: 8px;
-}
+.voucher-link:hover { color: #075f2a; }
+.voucher-link:focus-visible { border-radius: 4px; outline: 3px solid rgb(247 147 26 / 42%); outline-offset: 3px; }
 
-.voucher-grid {
+.pass-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
+  margin-top: 22px;
 }
 
 .voucher-card {
   position: relative;
-  overflow: hidden;
-  min-height: 168px;
-  border: 1px solid rgb(8 9 7 / 12%);
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 68%), rgb(255 255 255 / 0%)),
-    var(--cream);
-  color: var(--ink);
-  padding: 14px;
-  box-shadow: 0 12px 34px rgb(0 0 0 / 22%);
-  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  display: flex;
+  min-width: 0;
+  min-height: 184px;
+  flex-direction: column;
+  align-items: stretch;
+  border: 1px solid var(--pass-line);
+  border-top: 2px solid var(--pass-green);
+  border-radius: 6px;
+  background: var(--pass-surface);
+  color: var(--pass-ink);
+  padding: 17px 15px 16px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgb(16 24 32 / 5%);
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
-.voucher-card::before,
-.voucher-card::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  background: var(--background);
-  transform: translateY(-50%);
-}
+.voucher-card[data-accent="gold"] { border-top-color: var(--pass-gold); }
+.voucher-card[data-accent="red"] { border-top-color: var(--pass-red); }
 
-.voucher-card::before { left: -10px; }
-.voucher-card::after { right: -10px; }
-
-.voucher-card:hover,
-.voucher-card[data-selected="true"] {
-  border-color: var(--orange);
-  box-shadow: 0 16px 44px rgb(0 0 0 / 31%), 0 0 0 2px rgb(247 147 26 / 28%);
+.voucher-card:hover {
+  border-color: #aeb6b1;
+  box-shadow: 0 8px 22px rgb(16 24 32 / 9%);
   transform: translateY(-2px);
 }
 
-.voucher-card[data-featured="true"] {
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 72%), rgb(255 255 255 / 0%)),
-    linear-gradient(135deg, rgb(255 250 240), rgb(255 238 199));
+.voucher-card[data-selected="true"] {
+  border-color: var(--orange);
+  border-top-color: var(--orange);
+  background: #fff7eb;
+  box-shadow: 0 0 0 1px var(--orange), 0 8px 22px rgb(247 147 26 / 10%);
 }
 
-.voucher-card-glow {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 5px;
-  background: linear-gradient(90deg, var(--green-bright), var(--gold), var(--orange), var(--red));
+.voucher-card:focus-visible {
+  outline: 3px solid rgb(247 147 26 / 36%);
+  outline-offset: 3px;
 }
 
-.voucher-duration {
-  display: block;
-  color: #06a63d;
-  font-size: 17px;
-  font-weight: 900;
-  line-height: 1.05;
+.pass-card-top {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.voucher-check {
-  display: inline-grid;
-  width: 24px;
-  height: 24px;
-  place-items: center;
-  border-radius: 999px;
-  color: var(--orange);
-}
-
-.voucher-kes {
-  display: block;
-  color: #e10d16;
+.pass-duration {
+  min-width: 0;
   font-size: 20px;
-  font-weight: 950;
+  font-weight: 800;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+}
+
+.voucher-card[data-long-duration="true"] .pass-duration { font-size: 18px; }
+
+.pass-card-check {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--orange);
+  color: #111;
+  opacity: 0;
+  transform: scale(0.75);
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.voucher-card[data-selected="true"] .pass-card-check { opacity: 1; transform: scale(1); }
+
+.pass-price {
+  display: block;
+  margin-top: 15px;
+  font-size: 20px;
+  font-weight: 800;
   line-height: 1;
 }
 
-.voucher-description {
+.pass-sats {
   display: block;
-  margin-top: 12px;
-  color: #62675e;
-  font-size: 11px;
-  font-weight: 650;
-  line-height: 1.35;
+  margin-top: 7px;
+  color: #ee6900;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
 }
 
-.checkout-bar {
-  position: static;
-  z-index: 20;
-  display: flex;
-  min-height: 64px;
+.pass-value-label {
+  align-self: flex-start;
+  margin-top: 10px;
+  border-radius: 4px;
+  background: #f4ca3b;
+  color: #23281f;
+  padding: 4px 7px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.pass-description {
+  display: block;
+  margin-top: auto;
+  padding-top: 16px;
+  color: var(--pass-muted);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.42;
+}
+
+.pass-empty {
+  margin-top: 22px;
+  border: 1px solid var(--pass-line);
+  border-radius: 6px;
+  background: var(--pass-surface);
+  padding: 32px 20px;
+  color: var(--pass-muted);
+  text-align: center;
+}
+
+.pass-checkout {
+  position: fixed;
+  z-index: 40;
+  right: 12px;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  left: 12px;
+  display: grid;
+  width: min(760px, calc(100% - 24px));
+  min-height: 76px;
+  margin: 0 auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border: 1px solid rgb(255 255 255 / 10%);
+  gap: 10px;
+  border: 1px solid #d1d7d2;
   border-radius: 8px;
-  background: rgb(16 18 15 / 88%);
-  padding: 10px 10px 10px 14px;
-  box-shadow: 0 18px 50px rgb(0 0 0 / 38%);
-  backdrop-filter: blur(16px);
+  background: var(--pass-surface);
+  padding: 9px 9px 9px 14px;
+  box-shadow: 0 12px 40px rgb(16 24 32 / 18%);
 }
 
-@media (min-width: 640px) {
-  .voucher-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pass-checkout-summary { min-width: 0; }
+.pass-checkout-summary > span { display: block; color: var(--pass-muted); font-size: 10px; font-weight: 700; }
+.pass-checkout-summary strong { display: block; overflow: hidden; margin-top: 3px; font-size: 13px; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.pass-checkout-summary small { display: block; margin-top: 3px; color: #ee6900; font-size: 11px; font-weight: 800; }
+
+.pass-checkout-button { min-width: 142px; height: 52px; font-size: 14px; }
+
+.pass-voucher-panel {
+  width: min(560px, 100%);
+  margin: 8px auto 0;
+  border: 1px solid var(--pass-line);
+  border-radius: 8px;
+  background: var(--pass-surface);
+  padding: 24px;
+  box-shadow: 0 10px 32px rgb(16 24 32 / 8%);
 }
 
-@media (min-width: 1024px) {
-  .portal-hero {
-    position: sticky;
-    top: 32px;
-    padding: 32px;
-  }
-  .voucher-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-  }
-  .voucher-card {
-    min-height: 184px;
-    padding: 16px;
-  }
-  .checkout-bar {
-    position: sticky;
-    bottom: 18px;
-  }
+.pass-voucher-heading { display: flex; align-items: center; gap: 14px; }
+.pass-voucher-heading p { margin: 0 0 4px; color: #ee6900; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+.pass-voucher-heading h2 { margin: 0; color: var(--pass-ink); font-size: 24px; line-height: 1.1; }
+
+.pass-voucher-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 6px;
+  background: #fff1dd;
+  color: #d75f00;
+}
+
+.pass-field-label { display: block; margin: 24px 0 7px; color: var(--pass-muted); font-size: 12px; font-weight: 700; }
+.pass-portal .pass-voucher-input { height: 46px; border-color: var(--pass-line); background: #fff; color: var(--pass-ink); }
+.pass-portal .pass-voucher-input::placeholder { color: #929995; }
+.pass-voucher-actions { display: flex; gap: 10px; margin-top: 16px; }
+.pass-portal .pass-secondary-button { border-color: var(--pass-line); background: #fff; color: var(--pass-ink); }
+.pass-portal .pass-secondary-button:hover { background: #eef1ee; }
+
+@media (max-width: 359px) {
+  .pass-header-inner { padding-inline: 12px; }
+  .pass-header-inner > div { gap: 6px; }
+  .pass-portal .brand-symbol { width: 34px; height: 34px; }
+  .pass-portal .brand-symbol svg { width: 25px; height: 25px; }
+  .pass-portal .brand-name { font-size: 13px; }
+  .network-label-long { display: none; }
+  .network-label-short { display: inline; }
+  .pass-content { padding-inline: 12px; }
+  .pass-heading-row { gap: 8px; }
+  .pass-heading-row p { display: none; }
+  .voucher-link { font-size: 12px; }
+  .pass-grid { gap: 8px; }
+  .voucher-card { min-height: 176px; padding-inline: 12px; }
+  .pass-duration { font-size: 19px; }
+  .pass-checkout { right: 8px; left: 8px; width: calc(100% - 16px); }
+  .pass-checkout-button { min-width: 116px; padding-inline: 12px; }
+}
+
+@media (min-width: 720px) {
+  .pass-header-inner { min-height: 80px; padding-inline: 28px; }
+  .pass-main { padding: 24px 28px 0; }
+  .pass-hero { width: min(1180px, 100%); max-height: 330px; margin: 0 auto; aspect-ratio: 3.4 / 1; border-radius: 8px; }
+  .pass-hero h1 { left: 7%; font-size: 40px; }
+  .pass-content { padding: 34px 0 132px; }
+  .pass-heading-row h2 { font-size: 32px; }
+  .pass-heading-row p { font-size: 14px; }
+  .voucher-link { font-size: 14px; }
+  .pass-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 26px; }
+  .voucher-card { min-height: 202px; padding: 20px; }
+  .pass-duration { font-size: 25px; }
+  .voucher-card[data-long-duration="true"] .pass-duration { font-size: 25px; }
+  .pass-price { font-size: 23px; }
+  .pass-description { font-size: 13px; }
 }
 
 .admin-grid {

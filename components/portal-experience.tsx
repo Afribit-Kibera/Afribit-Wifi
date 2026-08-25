@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createScope, animate, stagger } from "animejs";
-import { Check, Loader2, ShieldCheck, SignalHigh, Ticket, Zap } from "lucide-react";
+import { ArrowLeft, Check, Loader2, Ticket, Zap } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { BrandMark } from "./brand-mark";
@@ -28,6 +29,12 @@ type PortalContext = {
   originalUrl?: string;
 };
 
+function planAccent(durationMinutes: number) {
+  if (durationMinutes <= 240) return "green";
+  if (durationMinutes <= 4320) return "gold";
+  return "red";
+}
+
 export function PortalExperience({ packages, portalContext }: { packages: WifiPackage[]; portalContext: PortalContext }) {
   const root = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -40,7 +47,8 @@ export function PortalExperience({ packages, portalContext }: { packages: WifiPa
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const scope = createScope({ root }).add(() => {
-      animate("[data-reveal]", { opacity: [0, 1], translateY: [14, 0], delay: stagger(70), duration: 520, ease: "out(3)" });
+      animate("[data-reveal]", { opacity: [0, 1], translateY: [12, 0], delay: stagger(70), duration: 460, ease: "out(3)" });
+      animate("[data-plan-card]", { opacity: [0, 1], translateY: [10, 0], delay: stagger(42, { start: 120 }), duration: 420, ease: "out(3)" });
     });
     return () => scope.revert();
   }, []);
@@ -82,76 +90,114 @@ export function PortalExperience({ packages, portalContext }: { packages: WifiPa
   }
 
   return (
-    <div ref={root} className="portal-shell">
-      <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 md:px-8 md:py-5">
-        <BrandMark />
-        <span className="network-pill"><span className="size-2 rounded-full bg-[var(--green-bright)]" /> Network available</span>
+    <div ref={root} className="pass-portal">
+      <header className="pass-header">
+        <div className="pass-header-inner">
+          <BrandMark />
+          <span className="network-pill">
+            <span className="network-dot" aria-hidden="true" />
+            <span className="network-label-long">Network available</span>
+            <span className="network-label-short">Online</span>
+          </span>
+        </div>
       </header>
 
-      <main className="mx-auto grid w-full max-w-6xl gap-5 px-4 pb-10 pt-1 md:gap-8 md:px-8 md:pb-16 md:pt-6 lg:grid-cols-[0.72fr_1.28fr] lg:pt-10">
-        <section className="portal-hero self-start" data-reveal>
-          <div className="signal-art" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </div>
-          <div className="relative">
-            <p className="text-xs font-bold uppercase text-[var(--orange)]">Prepaid neighborhood access</p>
-            <h1 className="mt-3 max-w-lg text-4xl font-black leading-[1.02] md:text-6xl">3 West Satenet</h1>
-            <p className="mt-4 max-w-md text-sm leading-6 text-[var(--muted)] md:text-base md:leading-7">Pick a pass, pay in seconds, and stay online without needing mobile data first.</p>
-          </div>
-          <div className="mt-6 grid grid-cols-3 gap-2 text-[11px] font-semibold text-[var(--muted)]">
-            <span className="hero-chip"><Zap size={14} className="text-[var(--orange)]" /> Instant</span>
-            <span className="hero-chip"><ShieldCheck size={14} className="text-[var(--green-bright)]" /> Secure</span>
-            <span className="hero-chip"><SignalHigh size={14} className="text-[var(--gold)]" /> WiFi</span>
-          </div>
+      <main className="pass-main">
+        <section className="pass-hero" data-reveal>
+          <Image
+            src="/images/rooftop-wifi-hero.png"
+            alt="A rooftop wireless antenna serving a neighborhood"
+            fill
+            priority
+            sizes="(max-width: 767px) 100vw, 1180px"
+            className="pass-hero-image"
+          />
+          <h1>Get connected</h1>
         </section>
 
-        <section className="voucher-board" data-reveal>
+        <section className="pass-content">
           {!voucherMode ? (
             <>
-              <div className="flex items-end justify-between gap-3 px-1">
+              <div className="pass-heading-row">
                 <div>
-                  <p className="text-xs font-bold uppercase text-[var(--muted)]">Access vouchers</p>
-                  <h2 className="mt-1 text-2xl font-black">Choose time</h2>
+                  <h2>Choose a pass</h2>
+                  <p>Prices in KES, paid securely over Lightning.</p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setVoucherMode(true)}><Ticket size={15} /> Voucher</Button>
+                <button type="button" className="voucher-link" onClick={() => setVoucherMode(true)}>
+                  <Ticket size={17} /> Have a voucher?
+                </button>
               </div>
-              <div className="voucher-grid mt-4">
-                {packages.map((item, index) => (
-                  <button key={item.id} className="voucher-card text-left" data-selected={selectedId === item.id} data-featured={index === 6} onClick={() => setSelectedId(item.id)}>
-                    <span className="voucher-card-glow" aria-hidden="true" />
-                    <span className="flex items-start justify-between gap-2">
-                      <span>
-                        <strong className="voucher-duration">{formatDuration(item.durationMinutes)}</strong>
-                        <span className="mt-1 block text-[11px] font-semibold uppercase text-[var(--muted)]">{item.name}</span>
-                      </span>
-                      <span className="voucher-check">{selectedId === item.id ? <Check size={15} /> : null}</span>
-                    </span>
-                    <span className="mt-5 block">
-                      <span className="voucher-kes">{formatKes(item.priceKes)}</span>
-                      <span className="mt-1 block text-xs font-bold text-[var(--orange)]">{formatSats(item.priceSats)}</span>
-                    </span>
-                    <span className="voucher-description">{item.description}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="checkout-bar mt-4">
-                <div className="min-w-0">
-                  <span className="block text-[11px] font-bold uppercase text-[var(--muted)]">Selected pass</span>
-                  <strong className="block truncate text-sm">{selectedPackage ? `${formatDuration(selectedPackage.durationMinutes)} - ${formatKes(selectedPackage.priceKes)}` : "Choose a pass"}</strong>
+              {packages.length > 0 ? (
+                <div className="pass-grid" role="radiogroup" aria-label="WiFi access passes">
+                  {packages.map((item) => {
+                    const selected = selectedId === item.id;
+                    const featured = item.durationMinutes === 10080;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        className="voucher-card"
+                        data-plan-card
+                        data-selected={selected}
+                        data-accent={planAccent(item.durationMinutes)}
+                        data-long-duration={item.durationMinutes === 80}
+                        onClick={() => setSelectedId(item.id)}
+                      >
+                        <span className="pass-card-top">
+                          <strong className="pass-duration">{formatDuration(item.durationMinutes)}</strong>
+                          <span className="pass-card-check" aria-hidden="true"><Check size={17} strokeWidth={3} /></span>
+                        </span>
+                        <span className="pass-price">{formatKes(item.priceKes)}</span>
+                        <span className="pass-sats">{formatSats(item.priceSats)}</span>
+                        {featured ? <span className="pass-value-label">Best value</span> : null}
+                        <span className="pass-description">{item.description ?? item.name}</span>
+                      </button>
+                    );
+                  })}
                 </div>
-                <Button disabled={loading || !selectedId} onClick={startPayment}>
-                  {loading ? <Loader2 className="animate-spin" size={17} /> : <Zap size={17} />} Pay
+              ) : (
+                <div className="pass-empty">No passes are available right now.</div>
+              )}
+              <div className="pass-checkout" aria-live="polite">
+                <div className="pass-checkout-summary">
+                  <span>Selected pass</span>
+                  <strong>{selectedPackage ? `${formatDuration(selectedPackage.durationMinutes)} - ${formatKes(selectedPackage.priceKes)}` : "Choose a pass"}</strong>
+                  {selectedPackage ? <small>{formatSats(selectedPackage.priceSats)}</small> : null}
+                </div>
+                <Button className="pass-checkout-button" disabled={loading || !selectedId} onClick={startPayment}>
+                  {loading ? <Loader2 className="animate-spin" size={18} /> : <Zap size={18} />} Continue
                 </Button>
               </div>
             </>
           ) : (
-            <form className="panel p-6" onSubmit={redeemVoucher}>
-              <div className="flex items-center justify-between gap-4"><div><p className="text-xs font-bold uppercase text-[var(--orange)]">Voucher access</p><h2 className="mt-2 text-2xl font-bold">Enter your code</h2></div><Ticket className="text-[var(--orange)]" /></div>
-              <label className="field-label mt-7" htmlFor="voucher">Voucher code</label>
-              <Input id="voucher" value={voucherCode} onChange={(event) => setVoucherCode(event.target.value.toUpperCase())} placeholder="3W-XXXX-XXXX-XXXX" autoComplete="off" required />
-              <div className="mt-5 flex gap-3"><Button type="submit" className="flex-1" disabled={loading}>{loading && <Loader2 className="animate-spin" size={17} />} Connect</Button><Button type="button" variant="secondary" onClick={() => setVoucherMode(false)}>Back</Button></div>
+            <form className="pass-voucher-panel" onSubmit={redeemVoucher}>
+              <div className="pass-voucher-heading">
+                <span className="pass-voucher-icon" aria-hidden="true"><Ticket size={22} /></span>
+                <div>
+                  <p>Voucher access</p>
+                  <h2>Enter your code</h2>
+                </div>
+              </div>
+              <label className="pass-field-label" htmlFor="voucher">Voucher code</label>
+              <Input
+                id="voucher"
+                className="pass-voucher-input"
+                value={voucherCode}
+                onChange={(event) => setVoucherCode(event.target.value.toUpperCase())}
+                placeholder="3W-XXXX-XXXX-XXXX"
+                autoComplete="off"
+                required
+              />
+              <div className="pass-voucher-actions">
+                <Button type="submit" className="flex-1" disabled={loading}>
+                  {loading ? <Loader2 className="animate-spin" size={17} /> : <Zap size={17} />} Connect
+                </Button>
+                <Button type="button" variant="secondary" className="pass-secondary-button" onClick={() => setVoucherMode(false)}>
+                  <ArrowLeft size={17} /> Back
+                </Button>
+              </div>
             </form>
           )}
         </section>

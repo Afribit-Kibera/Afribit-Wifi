@@ -6,9 +6,9 @@ export function BrandMark({ compact = false, className }: { compact?: boolean; c
     <div className={cn("flex items-center gap-3", className)}>
       <span className="brand-symbol" aria-hidden="true"><Wifi size={21} strokeWidth={2.5} /></span>
       {!compact && (
-        <span className="leading-none">
-          <strong className="block text-sm font-bold text-[var(--text)]">3 West Satenet</strong>
-          <span className="mt-1 block text-[10px] font-bold uppercase text-[var(--orange)]">WiFi</span>
+        <span className="brand-lockup leading-none">
+          <strong className="brand-name block text-sm font-bold text-[var(--text)]">3 West Satenet</strong>
+          <span className="brand-kicker mt-1 block text-[10px] font-bold uppercase text-[var(--orange)]">WiFi</span>
         </span>
       )}
     </div>
