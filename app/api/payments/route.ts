@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       portalSessionId: session.id,
       packageId: wifiPackage.id,
       amountSats: wifiPackage.priceSats,
-      metadata: { packageName: wifiPackage.name },
+      metadata: { packageName: wifiPackage.name, priceKes: wifiPackage.priceKes },
     })
     .returning();
 

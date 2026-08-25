@@ -2,18 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createScope, animate, stagger } from "animejs";
-import { Check, Clock3, Gauge, Loader2, Ticket, Zap } from "lucide-react";
+import { Check, Loader2, ShieldCheck, SignalHigh, Ticket, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { BrandMark } from "./brand-mark";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { formatDuration, formatSats } from "@/lib/utils";
+import { formatDuration, formatKes, formatSats } from "@/lib/utils";
 
 type WifiPackage = {
   id: string;
   name: string;
   description: string | null;
+  priceKes: number;
   priceSats: number;
   durationMinutes: number;
   speedLimitKbps: number | null;
@@ -34,6 +35,7 @@ export function PortalExperience({ packages, portalContext }: { packages: WifiPa
   const [loading, setLoading] = useState(false);
   const [voucherMode, setVoucherMode] = useState(false);
   const [voucherCode, setVoucherCode] = useState("");
+  const selectedPackage = packages.find((item) => item.id === selectedId);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -83,49 +85,72 @@ export function PortalExperience({ packages, portalContext }: { packages: WifiPa
     <div ref={root} className="portal-shell">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 md:px-8 md:py-5">
         <BrandMark />
-        <span className="flex items-center gap-2 text-xs font-semibold text-[var(--muted)]"><span className="size-2 rounded-full bg-[var(--green-bright)]" /> Network available</span>
+        <span className="network-pill"><span className="size-2 rounded-full bg-[var(--green-bright)]" /> Network available</span>
       </header>
 
-      <main className="mx-auto grid w-full max-w-6xl gap-7 px-4 pb-10 pt-2 md:gap-12 md:px-8 md:pb-16 md:pt-8 lg:grid-cols-[0.76fr_1.24fr] lg:pt-14">
-        <section className="self-start" data-reveal>
-          <div className="portal-accent py-1 pl-4 md:py-2 md:pl-5">
-            <p className="text-xs font-bold uppercase text-[var(--orange)]">Bitcoin-powered access</p>
-            <h1 className="mt-3 max-w-lg text-3xl font-bold leading-[1.1] md:mt-4 md:text-5xl">Connect to Bitcoin Valley.</h1>
+      <main className="mx-auto grid w-full max-w-6xl gap-5 px-4 pb-10 pt-1 md:gap-8 md:px-8 md:pb-16 md:pt-6 lg:grid-cols-[0.72fr_1.28fr] lg:pt-10">
+        <section className="portal-hero self-start" data-reveal>
+          <div className="signal-art" aria-hidden="true">
+            <span />
+            <span />
+            <span />
           </div>
-          <p className="mt-4 max-w-md text-sm leading-6 text-[var(--muted)] md:mt-7 md:text-base md:leading-7">Choose your time, pay over Lightning, and get online in seconds.</p>
-          <div className="mt-5 hidden max-w-md grid-cols-3 gap-3 text-xs text-[var(--muted)] sm:grid md:mt-9">
-            <span className="flex items-center gap-2"><Zap size={16} className="text-[var(--orange)]" /> Instant</span>
-            <span className="flex items-center gap-2"><Check size={16} className="text-[var(--green-bright)]" /> Private</span>
-            <span className="flex items-center gap-2"><Gauge size={16} className="text-[var(--gold)]" /> Fast</span>
+          <div className="relative">
+            <p className="text-xs font-bold uppercase text-[var(--orange)]">Prepaid neighborhood access</p>
+            <h1 className="mt-3 max-w-lg text-4xl font-black leading-[1.02] md:text-6xl">3 West Satenet</h1>
+            <p className="mt-4 max-w-md text-sm leading-6 text-[var(--muted)] md:text-base md:leading-7">Pick a pass, pay in seconds, and stay online without needing mobile data first.</p>
+          </div>
+          <div className="mt-6 grid grid-cols-3 gap-2 text-[11px] font-semibold text-[var(--muted)]">
+            <span className="hero-chip"><Zap size={14} className="text-[var(--orange)]" /> Instant</span>
+            <span className="hero-chip"><ShieldCheck size={14} className="text-[var(--green-bright)]" /> Secure</span>
+            <span className="hero-chip"><SignalHigh size={14} className="text-[var(--gold)]" /> WiFi</span>
           </div>
         </section>
 
-        <section data-reveal>
+        <section className="voucher-board" data-reveal>
           {!voucherMode ? (
             <>
-              <div className="flex items-end justify-between gap-4">
-                <div><p className="text-xs font-bold uppercase text-[var(--muted)]">Access passes</p><h2 className="mt-2 text-2xl font-bold">Select a plan</h2></div>
-                <Button variant="ghost" size="sm" onClick={() => setVoucherMode(true)}><Ticket size={15} /> Use voucher</Button>
+              <div className="flex items-end justify-between gap-3 px-1">
+                <div>
+                  <p className="text-xs font-bold uppercase text-[var(--muted)]">Access vouchers</p>
+                  <h2 className="mt-1 text-2xl font-black">Choose time</h2>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setVoucherMode(true)}><Ticket size={15} /> Voucher</Button>
               </div>
-              <div className="mt-4 grid gap-2.5 md:mt-5 md:grid-cols-3 md:gap-3">
-                {packages.map((item) => (
-                  <button key={item.id} className="package-option p-4 text-left md:p-5" data-selected={selectedId === item.id} onClick={() => setSelectedId(item.id)}>
-                    <span className="flex items-center justify-between gap-2"><strong className="text-sm">{item.name}</strong>{selectedId === item.id && <Check size={17} className="text-[var(--orange)]" />}</span>
-                    <span className="package-price mt-3 block text-xl font-bold text-[var(--orange)] md:mt-7 md:text-2xl">{formatSats(item.priceSats)}</span>
-                    <span className="mt-2 flex items-center gap-2 text-xs text-[var(--muted)]"><Clock3 size={14} /> {formatDuration(item.durationMinutes)}</span>
-                    <span className="package-description mt-2 hidden text-xs leading-5 text-[var(--muted)] md:mt-5 md:block">{item.description}</span>
+              <div className="voucher-grid mt-4">
+                {packages.map((item, index) => (
+                  <button key={item.id} className="voucher-card text-left" data-selected={selectedId === item.id} data-featured={index === 6} onClick={() => setSelectedId(item.id)}>
+                    <span className="voucher-card-glow" aria-hidden="true" />
+                    <span className="flex items-start justify-between gap-2">
+                      <span>
+                        <strong className="voucher-duration">{formatDuration(item.durationMinutes)}</strong>
+                        <span className="mt-1 block text-[11px] font-semibold uppercase text-[var(--muted)]">{item.name}</span>
+                      </span>
+                      <span className="voucher-check">{selectedId === item.id ? <Check size={15} /> : null}</span>
+                    </span>
+                    <span className="mt-5 block">
+                      <span className="voucher-kes">{formatKes(item.priceKes)}</span>
+                      <span className="mt-1 block text-xs font-bold text-[var(--orange)]">{formatSats(item.priceSats)}</span>
+                    </span>
+                    <span className="voucher-description">{item.description}</span>
                   </button>
                 ))}
               </div>
-              <Button className="mt-5 w-full" disabled={loading || !selectedId} onClick={startPayment}>
-                {loading ? <Loader2 className="animate-spin" size={17} /> : <Zap size={17} />} Pay with Lightning
-              </Button>
+              <div className="checkout-bar mt-4">
+                <div className="min-w-0">
+                  <span className="block text-[11px] font-bold uppercase text-[var(--muted)]">Selected pass</span>
+                  <strong className="block truncate text-sm">{selectedPackage ? `${formatDuration(selectedPackage.durationMinutes)} - ${formatKes(selectedPackage.priceKes)}` : "Choose a pass"}</strong>
+                </div>
+                <Button disabled={loading || !selectedId} onClick={startPayment}>
+                  {loading ? <Loader2 className="animate-spin" size={17} /> : <Zap size={17} />} Pay
+                </Button>
+              </div>
             </>
           ) : (
             <form className="panel p-6" onSubmit={redeemVoucher}>
               <div className="flex items-center justify-between gap-4"><div><p className="text-xs font-bold uppercase text-[var(--orange)]">Voucher access</p><h2 className="mt-2 text-2xl font-bold">Enter your code</h2></div><Ticket className="text-[var(--orange)]" /></div>
               <label className="field-label mt-7" htmlFor="voucher">Voucher code</label>
-              <Input id="voucher" value={voucherCode} onChange={(event) => setVoucherCode(event.target.value.toUpperCase())} placeholder="BV-XXXX-XXXX-XXXX" autoComplete="off" required />
+              <Input id="voucher" value={voucherCode} onChange={(event) => setVoucherCode(event.target.value.toUpperCase())} placeholder="3W-XXXX-XXXX-XXXX" autoComplete="off" required />
               <div className="mt-5 flex gap-3"><Button type="submit" className="flex-1" disabled={loading}>{loading && <Loader2 className="animate-spin" size={17} />} Connect</Button><Button type="button" variant="secondary" onClick={() => setVoucherMode(false)}>Back</Button></div>
             </form>
           )}

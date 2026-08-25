@@ -10,6 +10,7 @@ import { auditLogs, packages } from "@/lib/db/schema";
 const packageSchema = z.object({
   name: z.string().trim().min(2).max(80),
   description: z.string().trim().max(240).optional(),
+  priceKes: z.coerce.number().int().min(0),
   priceSats: z.coerce.number().int().min(1),
   durationMinutes: z.coerce.number().int().min(5),
   dataLimitMb: z.union([z.coerce.number().int().positive(), z.literal("")]).optional(),

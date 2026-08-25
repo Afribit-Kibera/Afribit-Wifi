@@ -7,8 +7,8 @@ const geist = Geist({ variable: "--font-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: "Bitcoin Valley WiFi", template: "%s | Bitcoin Valley WiFi" },
-  description: "Fast community WiFi paid with Bitcoin Lightning.",
+  title: { default: "3 West Satenet WiFi", template: "%s | 3 West Satenet WiFi" },
+  description: "Fast community WiFi with KES access passes and Bitcoin Lightning checkout.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -21,4 +21,3 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     </html>
   );
 }
-

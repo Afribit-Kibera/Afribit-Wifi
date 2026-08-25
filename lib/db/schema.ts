@@ -44,9 +44,10 @@ export const routerJobTypeEnum = pgEnum("router_job_type", [
 
 export const packages = pgTable("packages", {
   id: uuid("id").defaultRandom().primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
-  priceSats: integer("price_sats").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    priceKes: integer("price_kes").notNull().default(0),
+    priceSats: integer("price_sats").notNull(),
   durationMinutes: integer("duration_minutes").notNull(),
   dataLimitMb: integer("data_limit_mb"),
   speedLimitKbps: integer("speed_limit_kbps"),
@@ -145,7 +146,7 @@ export const voucherBatches = pgTable("voucher_batches", {
   validFrom: timestamp("valid_from", { withTimezone: true }),
   validUntil: timestamp("valid_until", { withTimezone: true }),
   maxRedemptions: integer("max_redemptions").notNull().default(1),
-  prefix: text("prefix").notNull().default("BV"),
+  prefix: text("prefix").notNull().default("3W"),
   createdBy: text("created_by").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -50,7 +50,7 @@ For this bench router, connect the home router LAN to MikroTik `ether1` and conn
 
 WinBox is a graphical RouterOS client, not a terminal protocol. Commissioning can be completed from this computer with SSH, SCP, and RouterOS REST once the router is physically connected. The operator must provide the factory/admin password and explicitly approve any factory reset; router passwords are never stored in the repository.
 
-On every Huawei AP, disable DHCP, NAT, and routing. Give each AP a fixed management address outside the client pool, connect it LAN-to-LAN, and broadcast the same Bitcoin Valley WiFi SSID. MikroTik must be the only DHCP server and default gateway for customers.
+On every Huawei AP, disable DHCP, NAT, and routing. Give each AP a fixed management address outside the client pool, connect it LAN-to-LAN, and broadcast the same 3 West Satenet WiFi SSID. MikroTik must be the only DHCP server and default gateway for customers.
 
 ## 3. Router Prerequisites
 

@@ -10,7 +10,7 @@ function encryptionKey() {
   return key;
 }
 
-export function generateVoucherCode(prefix = "BV") {
+export function generateVoucherCode(prefix = "3W") {
   const bytes = randomBytes(12);
   let body = "";
   for (let index = 0; index < 12; index += 1) {
@@ -44,4 +44,3 @@ export function decryptVoucherCode(value: string) {
     decipher.final(),
   ]).toString("utf8");
 }
-

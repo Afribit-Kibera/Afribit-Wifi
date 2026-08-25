@@ -20,10 +20,9 @@ export function VoucherBatchForm({ packages }: { packages: PackageOption[] }) {
         <div><label className="field-label" htmlFor="validFrom">Valid from</label><Input id="validFrom" name="validFrom" type="datetime-local" /></div>
         <div><label className="field-label" htmlFor="validUntil">Valid until</label><Input id="validUntil" name="validUntil" type="datetime-local" /></div>
         <div><label className="field-label" htmlFor="maxRedemptions">Uses per voucher</label><Input id="maxRedemptions" name="maxRedemptions" type="number" min="1" max="100" defaultValue="1" required /></div>
-        <div><label className="field-label" htmlFor="prefix">Code prefix</label><Input id="prefix" name="prefix" maxLength={6} defaultValue="BV" required /></div>
+        <div><label className="field-label" htmlFor="prefix">Code prefix</label><Input id="prefix" name="prefix" maxLength={6} defaultValue="3W" required /></div>
       </div>
       <div className="mt-6 flex justify-end"><Button type="submit"><TicketPlus size={17} /> Create batch</Button></div>
     </form>
   );
 }
-

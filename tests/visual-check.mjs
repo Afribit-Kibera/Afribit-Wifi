@@ -17,10 +17,10 @@ async function verifyViewport(name, viewport) {
   results.push({
     name: `portal-${name}`,
     status: response?.status(),
-    heading: await page.getByRole("heading", { name: "Connect to Bitcoin Valley." }).isVisible(),
-    packageCount: await page.locator(".package-option").count(),
+    heading: await page.getByRole("heading", { name: "3 West Satenet" }).isVisible(),
+    packageCount: await page.locator(".voucher-card").count(),
     overflow: await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth),
-    paymentActionTop: await page.getByRole("button", { name: "Pay with Lightning" }).evaluate((element) => Math.round(element.getBoundingClientRect().top)),
+    paymentActionTop: await page.getByRole("button", { name: "Pay" }).evaluate((element) => Math.round(element.getBoundingClientRect().top)),
     errors,
   });
   await context.close();

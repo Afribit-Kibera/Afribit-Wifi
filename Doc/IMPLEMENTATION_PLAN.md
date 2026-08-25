@@ -1,4 +1,4 @@
-# Bitcoin Valley WiFi Backend Implementation Plan
+# 3 West Satenet WiFi Backend Implementation Plan
 
 ## Delivery Status - 24 August 2026
 

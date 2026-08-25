@@ -14,7 +14,7 @@ export default async function SecurityPage() {
   const devices = await db.select().from(adminPasskeys).where(isNull(adminPasskeys.revokedAt)).orderBy(desc(adminPasskeys.createdAt));
   return (
     <>
-      <PageHeading eyebrow="Access control" title="Approved devices" description="Platform passkeys authorized for Bitcoin Valley WiFi operations." />
+      <PageHeading eyebrow="Access control" title="Approved devices" description="Platform passkeys authorized for 3 West Satenet WiFi operations." />
       <section className="panel">
         <div className="flex items-center justify-between gap-4 border-b border-[var(--line)] px-5 py-4">
           <div><h2 className="text-sm font-bold">Active passkeys</h2><p className="mt-1 text-xs text-[var(--muted)]">Device slots are provisioned outside the admin portal.</p></div>

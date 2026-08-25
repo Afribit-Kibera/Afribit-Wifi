@@ -19,11 +19,11 @@ export async function POST(request: Request) {
     if (passkeys.some((passkey) => passkey.slot === enrollmentCode.slot)) return Response.json({ error: "This admin device slot is already assigned" }, { status: 409 });
     const { rpID } = webAuthnConfig();
     const options = await generateRegistrationOptions({
-      rpName: "Bitcoin Valley WiFi",
+      rpName: "3 West Satenet WiFi",
       rpID,
-      userName: "bitcoin-valley-admin",
-      userID: new TextEncoder().encode("bitcoin-valley-admin"),
-      userDisplayName: "Bitcoin Valley WiFi Admin",
+      userName: "3-west-satenet-admin",
+      userID: new TextEncoder().encode("3-west-satenet-admin"),
+      userDisplayName: "3 West Satenet WiFi Admin",
       attestationType: "none",
       excludeCredentials: passkeys.map((passkey) => ({ id: passkey.credentialId, transports: passkey.transports as never })),
       authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "required", userVerification: "required" },

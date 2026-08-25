@@ -1,4 +1,4 @@
-# Bitcoin Valley WiFi
+# 3 West Satenet WiFi
 
 Paid captive-portal and network operations backend for `wifi.afribit.africa`.
 

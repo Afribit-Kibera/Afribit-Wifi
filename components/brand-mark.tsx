@@ -7,11 +7,10 @@ export function BrandMark({ compact = false, className }: { compact?: boolean; c
       <span className="brand-symbol" aria-hidden="true"><Wifi size={21} strokeWidth={2.5} /></span>
       {!compact && (
         <span className="leading-none">
-          <strong className="block text-sm font-bold text-[var(--text)]">Bitcoin Valley</strong>
+          <strong className="block text-sm font-bold text-[var(--text)]">3 West Satenet</strong>
           <span className="mt-1 block text-[10px] font-bold uppercase text-[var(--orange)]">WiFi</span>
         </span>
       )}
     </div>
   );
 }
-

@@ -16,7 +16,7 @@ function argument(name: string) {
 
 function generateCode() {
   const token = randomBytes(12).toString("hex").toUpperCase();
-  return `BV-${token.match(/.{1,4}/g)?.join("-")}`;
+  return `3W-${token.match(/.{1,4}/g)?.join("-")}`;
 }
 
 async function provision() {

@@ -1,4 +1,4 @@
-# Bitcoin Valley WiFi Captive Portal PRD
+# 3 West Satenet WiFi Captive Portal PRD
 
 ## 1. Summary
 

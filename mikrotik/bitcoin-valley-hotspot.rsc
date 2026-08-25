@@ -1,4 +1,4 @@
-# Bitcoin Valley WiFi - RouterOS v7 HotSpot overlay
+# 3 West Satenet WiFi - RouterOS v7 HotSpot overlay
 # Review the variables below before importing. This script does not reset the router.
 
 :local hotspotInterface "bridge1"
@@ -63,4 +63,4 @@
 # after installing a trusted certificate on the router.
 /ip service set www address=$agentAddress disabled=no
 
-:put "Bitcoin Valley WiFi HotSpot overlay installed. Upload mikrotik/hotspot-bv files into the router hotspot directory, set the agent password, then enable the agent user."
+:put "3 West Satenet WiFi HotSpot overlay installed. Upload mikrotik/hotspot-bv files into the router hotspot directory, set the agent password, then enable the agent user."

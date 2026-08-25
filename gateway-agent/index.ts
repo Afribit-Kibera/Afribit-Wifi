@@ -101,7 +101,7 @@ async function poll() {
 }
 
 async function main() {
-  console.log("Bitcoin Valley WiFi gateway agent started");
+  console.log("3 West Satenet WiFi gateway agent started");
   await poll();
   setInterval(poll, config.pollInterval);
 }

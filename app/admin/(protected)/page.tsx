@@ -24,7 +24,7 @@ export default async function AdminOverview() {
   ];
   return (
     <>
-      <PageHeading eyebrow="Operations" title="Network overview" description="Live commercial and access state across Bitcoin Valley WiFi." />
+      <PageHeading eyebrow="Operations" title="Network overview" description="Live commercial and access state across 3 West Satenet WiFi." />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map(({ label, value, icon: Icon, tone }) => <div key={label} className={`panel metric ${tone} p-5`}><div className="flex items-center justify-between text-[var(--muted)]"><span className="text-xs font-semibold">{label}</span><Icon size={17} /></div><strong className="mt-5 block text-2xl">{value}</strong></div>)}
       </div>
@@ -35,4 +35,3 @@ export default async function AdminOverview() {
     </>
   );
 }
-
