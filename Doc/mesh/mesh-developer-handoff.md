@@ -11,6 +11,10 @@ These results are not a multi-client field stress test or independent pentest.
 The live controller and its two router adapters matched local SHA-256 hashes;
 all eleven scoped router welcome assets matched local source on readback.
 The retained controller release is `nonce-security-20261006T183318Z`.
+See the [published release record](mesh-release-2026-10-06.md) for source and
+deployment identifiers. Hosted GitHub CI is blocked before execution by an
+account billing issue; the operator must resolve billing and rerun it. Local
+tests and Vercel's independent Git build passed.
 
 ## Start here
 

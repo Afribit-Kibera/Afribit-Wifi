@@ -9,6 +9,7 @@ policy, read [pilot readiness and device plans](mesh-pilot-readiness-and-device-
 
 ## Current operations
 
+- [Published source, deployed versions and verification](mesh-release-2026-10-06.md)
 - [Developer setup, deployment and recovery handoff](mesh-developer-handoff.md)
 - [Pilot go/no-go, stress-test status and device plans](mesh-pilot-readiness-and-device-plans.md)
 - [3WEST production review and migration evidence](3west-production-readiness.md)
