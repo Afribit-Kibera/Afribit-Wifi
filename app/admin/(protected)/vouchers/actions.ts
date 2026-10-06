@@ -3,10 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
+import { inArray } from "drizzle-orm";
 import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { auditLogs, voucherBatches, vouchers } from "@/lib/db/schema";
-import { encryptVoucherCode, generateVoucherCode, hashVoucherCode } from "@/lib/voucher-crypto";
+import { issueVoucherBatch } from "@/lib/voucher-issuance";
 
 const batchSchema = z.object({
   name: z.string().trim().min(2).max(100),
@@ -19,7 +21,6 @@ const batchSchema = z.object({
   validFrom: z.string().optional(),
   validUntil: z.string().optional(),
   maxRedemptions: z.coerce.number().int().min(1).max(100),
-  prefix: z.string().trim().regex(/^[A-Za-z0-9]{1,6}$/),
 });
 
 export async function createVoucherBatchAction(formData: FormData) {
@@ -29,7 +30,10 @@ export async function createVoucherBatchAction(formData: FormData) {
   const validUntil = input.validUntil ? new Date(input.validUntil) : null;
   if (validFrom && validUntil && validUntil <= validFrom) throw new Error("Valid until must be later than valid from");
 
-  const [batch] = await db.insert(voucherBatches).values({
+  const batchId = randomUUID();
+  await issueVoucherBatch(batchId, input.quantity, async records => db.batch([
+    db.insert(voucherBatches).values({
+    id: batchId,
     name: input.name,
     packageId: input.packageId || null,
     quantity: input.quantity,
@@ -40,16 +44,13 @@ export async function createVoucherBatchAction(formData: FormData) {
     validFrom,
     validUntil,
     maxRedemptions: input.maxRedemptions,
-    prefix: input.prefix.toUpperCase(),
+    prefix: "",
     createdBy: admin.actor,
-  }).returning();
-
-  const records = Array.from({ length: input.quantity }, () => {
-    const code = generateVoucherCode(input.prefix);
-    return { batchId: batch.id, codeHash: hashVoucherCode(code), codeCiphertext: encryptVoucherCode(code), codeLastFour: code.slice(-4) };
-  });
-  for (let offset = 0; offset < records.length; offset += 200) await db.insert(vouchers).values(records.slice(offset, offset + 200));
-  await db.insert(auditLogs).values({ actor: admin.actor, action: "voucher_batch.created", entityType: "voucher_batch", entityId: batch.id, details: { quantity: input.quantity, durationMinutes: input.accessDurationMinutes, saleAmountSats: input.saleAmountSats } });
+  }),
+    db.insert(vouchers).values(records),
+    db.insert(auditLogs).values({ actor: admin.actor, action: "voucher_batch.created", entityType: "voucher_batch", entityId: batchId, details: { quantity: input.quantity, durationMinutes: input.accessDurationMinutes, saleAmountSats: input.saleAmountSats, codeFormat: "six-digit" } }),
+  ]), async hashes => (await db.select({ hash: vouchers.codeHash }).from(vouchers)
+    .where(inArray(vouchers.codeHash, hashes))).map(record => record.hash));
   revalidatePath("/admin/vouchers");
-  redirect(`/admin/vouchers/${batch.id}`);
+  redirect(`/admin/vouchers/${batchId}`);
 }

@@ -1,0 +1,50 @@
+.mesh-flow {
+  --flow-paper: #f4f1e9;
+  --flow-ink: #203c32;
+  min-height: 100svh;
+  padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+  display: grid;
+  place-items: center;
+  background: var(--flow-paper);
+  color: var(--flow-ink);
+}
+.mesh-flow-card { width: min(100%, 440px); }
+.mesh-flow .brand-name { color: var(--flow-ink); font-size: 25px; letter-spacing: -.06em; }
+.mesh-flow .brand-kicker { color: #657267; letter-spacing: .13em; }
+.mesh-flow .mesh-brand-symbol { background: #203c32; color: #dff58b; border: 0; border-radius: 11px; width: 45px; height: 45px; }
+.mesh-flow .flow-rule { height: 1px; background: #d8dbce; margin: 34px 0; }
+.mesh-flow .flow-heading { font-size: clamp(32px, 7vw, 42px); line-height: 1.08; letter-spacing: -.055em; font-weight: 650; margin: 25px 0 16px; }
+.mesh-flow .flow-copy { font-size: 15px; color: #53665b; line-height: 1.75; margin: 14px 0; }
+.mesh-flow .flow-status-symbol { color: #335b42; }
+.mesh-flow .flow-status-symbol.is-error { color: #a33d32; }
+.mesh-flow .flow-action { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 16px 20px; min-height: 54px; border-radius: 11px; margin-top: 23px; background: #203c32; color: #f4f1e9; border: 1px solid #203c32; font-size: 15px; font-weight: 600; }
+.mesh-flow .flow-action:focus-visible, .mesh-flow a:focus-visible { outline: 3px solid #748940; outline-offset: 4px; }
+.mesh-flow .flow-action:hover { background: #355848; }
+.mesh-flow .flow-action.secondary { background: transparent; color: #203c32; border-color: #bdc5b6; margin-top: 12px; }
+.mesh-flow .flow-note { font-size: 12px; line-height: 1.65; color: #596c5c; margin: 20px 0; }
+.mesh-flow .flow-loading { display: inline-block; animation: flow-spin 1s linear infinite; }
+.mesh-flow .flow-inline-status { font-size: 13px; color: #754437; line-height: 1.5; }
+@keyframes flow-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .mesh-flow .flow-loading { animation: none; } }
+.mesh-flow { --flow-paper:#fffaf2; --flow-ink:#203c32; }
+.mesh-flow .flow-action { background:#f7931a; border-color:#f7931a; color:#29251f; }
+.mesh-flow .flow-action:hover { background:#ffad42; }
+.mesh-flow .flow-action.secondary { background:transparent; border-color:#d6c9b7; }
+.flow-mpesa-logo { display:block; width:107px; height:31px; object-fit:contain; margin-bottom:28px; }
+.flow-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; list-style:none; padding:0; margin:0 0 34px; }
+.flow-steps li { display:flex; flex-direction:column; align-items:flex-start; gap:9px; padding-top:13px; border-top:2px solid #e7dfd1; color:#8a847a; font-size:11px; line-height:1.5; }
+.flow-steps li > span { display:grid; place-items:center; width:23px; height:23px; border-radius:50%; background:#ede6da; font-size:11px; font-weight:650; }
+.flow-steps li[data-state="current"] { color:#87470a; border-color:#f7931a; font-weight:650; }
+.flow-steps li[data-state="current"] > span { background:#ffedcf; }
+.flow-steps li[data-state="done"] { color:#335b42; border-color:#335b42; }
+.flow-help { padding:15px 17px; background:#ffedcf; border:1px solid #f0d9b8; border-radius:10px; font-size:13px; line-height:1.65; color:#705130; }
+.flow-reference { margin-top:26px; font-size:12px; color:#687267; }
+.flow-reference summary { cursor:pointer; }
+.flow-reference p { overflow-wrap:anywhere; margin-top:12px; }
+.flow-success { text-align:center; padding:30px 22px 20px; background:#fffdf8; border:1px solid #e8dcc8; border-radius:22px; box-shadow:0 16px 50px #7d572a0d; }
+.flow-success-mark { display:grid; place-items:center; position:relative; width:78px; height:78px; margin:0 auto 26px; border-radius:50%; background:#ffedcf; color:#87470a; }
+.flow-success-mark > svg:last-child { position:absolute; right:0; bottom:0; color:#335b42; background:#fffdf8; border-radius:50%; }
+.flow-success-eyebrow { color:#87470a; text-transform:uppercase; letter-spacing:.12em; font-size:11px; font-weight:650; }
+.mesh-flow .flow-success .flow-heading { margin-top:12px; }
+.flow-stay { color:#53665b; background:none; border:0; padding:10px; font-size:13px; text-decoration:underline; cursor:pointer; }
+.flow-stay:focus-visible { outline:3px solid #f7931a; outline-offset:3px; }

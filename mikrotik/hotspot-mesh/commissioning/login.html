@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light">
+  <title>Mesh operator test pass</title>
+  <style>
+    @font-face{font-family:Geist;font-style:normal;font-weight:100 900;font-display:swap;src:url("/geist-latin.woff2") format("woff2")}
+    *{box-sizing:border-box}body{margin:0;background:#fffaf2;color:#29251f;font:15px/1.6 Geist,Arial,sans-serif}
+    main{max-width:440px;margin:32px auto;padding:24px}.brand{font-size:39px;font-weight:750;letter-spacing:-.075em;color:#203c32;text-decoration:none}h1{font-size:28px;line-height:1.2;letter-spacing:-1px;margin:28px 0 12px}p{color:#686055;font-size:13px}label{display:block;margin-top:18px;font-weight:600;font-size:13px}input{display:block;width:100%;min-height:48px;margin-top:6px;padding:10px 12px;border:1px solid #d6c7af;border-radius:8px;font:inherit;background:#fffdf8;color:inherit}button{width:100%;min-height:50px;margin-top:24px;border:0;border-radius:8px;background:#f7931a;color:#29251f;font:650 14px Geist,Arial,sans-serif;cursor:pointer}button:disabled{background:#ffedcf;color:#65513b;cursor:default}a:focus-visible,input:focus-visible,button:focus-visible{outline:3px solid #884009;outline-offset:3px}.state{font-size:12px;margin-top:16px}.back{display:inline-block;padding:10px 0;min-height:44px;color:#884009;font-size:13px}
+  </style>
+</head>
+<body>
+  <main>
+    <a class="brand" href="/login?target=%2F">Mesh</a>
+    <h1>Operator test pass</h1>
+    <p>Use the private credentials supplied by the operator. Your pass file lists its time limit. Signing in here does not collect payment.</p>
+    $(if error)<p role="alert">Sign-in failed. Check the test credentials and ask the operator to inspect the pass.</p>$(endif)
+    <form id="credentials">
+      <label for="username">Test username</label>
+      <input id="username" autocomplete="off" autocapitalize="none" spellcheck="false" required maxlength="64">
+      <label for="password">Test password</label>
+      <input id="password" type="password" autocomplete="off" required maxlength="63">
+      <button id="activate" type="submit" disabled>Sign in to Mesh</button>
+    </form>
+    <form id="chap-login" action="$(link-login-only)" method="post" hidden>
+      <input type="hidden" name="username">
+      <input type="hidden" name="password">
+      <input type="hidden" name="dst" value="$(link-status)">
+      <input type="hidden" name="popup" value="false">
+    </form>
+    <p class="state" id="state" role="status">Router sign-in is unavailable. Return to Mesh and ask the operator to check this test.</p>
+    <noscript><p>JavaScript is needed for this router's sign-in method.</p></noscript>
+    <a class="back" href="/login?target=%2F">Back to Mesh</a>
+  </main>
+  <!-- The operator copies md5.js from this router's factory HotSpot directory. -->
+  <script src="/md5.js"></script>
+  <script>
+    (function () {
+      // RouterOS emits octal escapes for CHAP bytes; this block must not be strict mode.
+      var chapId = '$(chap-id)';
+      var challenge = '$(chap-challenge)';
+      var ready = chapId.length === 1 && challenge.length === 16 && typeof window.hexMD5 === 'function';
+      var state = document.getElementById('state');
+      var credentials = document.getElementById('credentials');
+      var hashedForm = document.getElementById('chap-login');
+      document.getElementById('activate').disabled = !ready;
+      if (ready) state.textContent = 'The operator sets your pass expiry. Signing in again does not renew it.';
+      credentials.addEventListener('submit', function (event) {
+        event.preventDefault();
+        if (!ready) return;
+        var password = document.getElementById('password');
+        hashedForm.elements.namedItem('username').value = document.getElementById('username').value.trim();
+        hashedForm.elements.namedItem('password').value = window.hexMD5(chapId + password.value + challenge);
+        password.value = '';
+        hashedForm.submit();
+      });
+    }());
+  </script>
+</body>
+</html>

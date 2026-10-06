@@ -1,72 +1,130 @@
-import { mkdir } from "node:fs/promises";
+import assert from "node:assert/strict";
+import { mkdir, writeFile } from "node:fs/promises";
 import { chromium } from "playwright";
 
-const baseUrl = process.env.TEST_BASE_URL ?? "http://localhost:3000";
-const executablePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+// All mutation endpoints are intercepted: this exercises the UI without issuing
+// invoices, consuming vouchers, authorizing a device or changing a router.
+const baseUrl = process.env.TEST_BASE_URL ?? "http://127.0.0.1:3000";
+const executablePath = process.env.CHROME_PATH ?? "C:/Program Files/Google/Chrome/Application/chrome.exe";
+const output = "artifacts/mesh-design";
 const browser = await chromium.launch({ headless: true, executablePath });
 const results = [];
+const captive = { macAddress: "02:11:22:33:44:55", ipAddress: "10.20.0.199", routerId: "mesh-design-test", loginUrl: "http://10.20.0.1/login", originalUrl: "http://example.com/" };
+const query = new URLSearchParams({ mac: captive.macAddress, ip: captive.ipAddress, router: captive.routerId, "link-login": captive.loginUrl, "link-orig": captive.originalUrl });
 
-async function verifyViewport(name, viewport) {
-  const context = await browser.newContext({ viewport });
-  const page = await context.newPage();
-  const errors = [];
-  page.on("console", (message) => { if (message.type() === "error") errors.push(message.text()); });
-  page.on("pageerror", (error) => errors.push(error.message));
-  const response = await page.goto(baseUrl, { waitUntil: "networkidle" });
-  await page.waitForTimeout(1000);
-  await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
-  const paymentActionTop = await page.getByRole("button", { name: "Continue" }).evaluate((element) => Math.round(element.getBoundingClientRect().top));
-  await page.screenshot({ path: `artifacts/portal-${name}-viewport.png` });
-  await page.screenshot({ path: `artifacts/portal-${name}.png`, fullPage: true });
-  const thirdPlan = page.getByRole("radio").nth(2);
-  await thirdPlan.click();
-  const planSelectionWorks = await thirdPlan.getAttribute("aria-checked") === "true";
-  const selectedSummaryUpdates = (await page.locator(".pass-checkout-summary").textContent())?.includes("4 hr - KES 20") ?? false;
-  await page.getByRole("button", { name: "Have a voucher?" }).click();
-  const voucherModeWorks = await page.getByLabel("Voucher code").isVisible();
-  await page.getByRole("button", { name: "Back" }).click();
-  results.push({
-    name: `portal-${name}`,
-    status: response?.status(),
-    heading: await page.getByRole("heading", { name: "Get connected" }).isVisible(),
-    packageCount: await page.locator(".voucher-card").count(),
-    overflow: await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth),
-    paymentActionTop,
-    planSelectionWorks,
-    selectedSummaryUpdates,
-    voucherModeWorks,
-    errors,
-  });
-  await context.close();
+await mkdir(output, { recursive: true });
+
+async function assertNoOverflow(page) {
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false, "Page must fit viewport");
 }
 
-await mkdir("artifacts", { recursive: true });
-await verifyViewport("desktop", { width: 1440, height: 900 });
-await verifyViewport("mobile", { width: 390, height: 844 });
+try {
+  for (const [name, viewport] of [
+    ["mobile-small", { width: 320, height: 740 }],
+    ["mobile", { width: 390, height: 844 }],
+    ["tablet", { width: 768, height: 1024 }],
+    ["desktop", { width: 1440, height: 960 }],
+  ]) {
+    const context = await browser.newContext({ viewport, reducedMotion: "reduce" });
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    // Guard against any unexpected mutation from future UI changes.
+    await page.route("**/api/**", async (route) => route.request().method() === "GET" ? route.continue() : route.fulfill({ status: 503, json: { error: "Preview does not perform payments." } }));
+    const response = await page.goto(`${baseUrl}/?${query}`, { waitUntil: "networkidle" });
+    assert.equal(response.status(), 200);
+    await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+    assert.equal(await page.getByRole("heading", { level: 1 }).textContent(), "Good thingsconnect.");
+    assert.equal(await page.getByRole("tab").count(), 3);
+    await assertNoOverflow(page);
+    await page.screenshot({ path: `${output}/${name}-welcome.png`, fullPage: true });
 
-const adminContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-const adminPage = await adminContext.newPage();
-const adminErrors = [];
-adminPage.on("console", (message) => { if (message.type() === "error") adminErrors.push(message.text()); });
-adminPage.on("pageerror", (error) => adminErrors.push(error.message));
-await adminPage.goto(`${baseUrl}/admin`, { waitUntil: "networkidle" });
-const redirectedToLogin = adminPage.url().includes("/admin/login");
+    await page.getByRole("button", { name: "What is Mesh?" }).click();
+    assert.equal(await page.getByRole("dialog").isVisible(), true);
+    await page.keyboard.press("Escape");
+    assert.equal(await page.getByRole("dialog").isVisible(), false);
+    assert.equal(await page.getByRole("button", { name: "What is Mesh?" }).evaluate((element) => element === document.activeElement), true);
 
-await adminPage.screenshot({ path: "artifacts/admin-login-desktop.png", fullPage: true });
-const hasPasskeyControl = await adminPage.getByRole("button", { name: /Verify this device|Approve this device/ }).isVisible();
-results.push({
-  name: "admin",
-  redirectedToLogin,
-  hasPasskeyControl,
-  errors: adminErrors,
-});
+    await page.getByRole("tab").nth(0).focus();
+    await page.keyboard.press("ArrowRight");
+    assert.equal(await page.getByRole("tab").nth(1).getAttribute("aria-selected"), "true");
+    await page.locator(".mesh-blink-card").click();
+    assert.match(await page.getByRole("dialog").textContent(), /Free access is being prepared/);
+    assert.equal(await page.getByRole("dialog").getByRole("link", { name: /Explore Blink/ }).getAttribute("href"), "https://www.blink.sv/");
+    await assertNoOverflow(page);
+    await page.screenshot({ path: `${output}/${name}-blink.png`, fullPage: true });
+    await page.getByRole("button", { name: "Close", exact: true }).click();
 
-const healthResponse = await adminPage.request.get(`${baseUrl}/api/health`);
-results.push({ name: "health", status: healthResponse.status(), body: await healthResponse.json() });
+    await page.getByRole("tab").nth(2).click();
+    const featuredCount = await page.getByRole("radio").count();
+    assert(featuredCount > 0, "Configured database must provide real passes for this integration check");
+    assert(featuredCount <= 3);
+    await page.getByRole("radio").last().check();
+    assert.equal(await page.getByRole("radio").last().isChecked(), true);
+    const selectedLabel = await page.getByRole("radio").last().locator("..").textContent();
+    assert(selectedLabel.includes((await page.locator(".mesh-checkout-summary strong").textContent()).split(" · ")[0]));
+    if (await page.getByRole("button", { name: /See all \d+ passes/ }).count()) {
+      await page.getByRole("button", { name: /See all \d+ passes/ }).click();
+      assert(await page.getByRole("radio").count() > featuredCount);
+      await page.getByRole("button", { name: "Show fewer passes" }).click();
+    }
+    await assertNoOverflow(page);
+    await page.screenshot({ path: `${output}/${name}-internet.png`, fullPage: true });
+    await page.getByRole("button", { name: "Have a voucher?" }).click();
+    await page.getByLabel("Voucher code").fill("3W-TEST-TEST-TEST");
+    await assertNoOverflow(page);
+    await page.screenshot({ path: `${output}/${name}-voucher.png`, fullPage: true });
+    assert.deepEqual(errors, []);
+    results.push({ name, status: 200, overflow: false, featuredCount, dialogs: "passed", keyboardTabs: "passed", errors });
+    await context.close();
+  }
 
-await adminContext.close();
-await browser.close();
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+  const page = await context.newPage();
+  let paymentPayload;
+  let voucherPayload;
+  await page.route("**/api/payments", async (route) => {
+    paymentPayload = route.request().postDataJSON();
+    await route.fulfill({ status: 503, json: { error: "Checkout is temporarily unavailable. Try again shortly." } });
+  });
+  await page.route("**/api/vouchers/redeem", async (route) => {
+    voucherPayload = route.request().postDataJSON();
+    await route.fulfill({ status: 400, json: { error: "That voucher is not valid. Check the code." } });
+  });
+  await page.goto(`${baseUrl}/?${query}&view=internet`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Mesh home" }).click();
+  await page.getByRole("tab").nth(2).click();
+  await page.getByRole("button", { name: "Pay with bitcoin", exact: true }).click();
+  await page.locator(".mesh-form-error").waitFor();
+  for (const [key, value] of Object.entries(captive)) assert.equal(paymentPayload[key], value, `Payment must preserve ${key}`);
+  assert.equal(await page.getByRole("button", { name: "Pay with bitcoin", exact: true }).isEnabled(), true);
+  await page.getByRole("button", { name: "Have a voucher?" }).click();
+  await page.getByLabel("Voucher code").fill("3W-TEST-TEST-TEST");
+  await page.getByRole("button", { name: "Use voucher", exact: true }).click();
+  await page.getByText("That voucher is not valid. Check the code.").waitFor();
+  assert.match(await page.locator(".mesh-form-error").textContent(), /not valid/);
+  for (const [key, value] of Object.entries(captive)) assert.equal(voucherPayload[key], value, `Voucher must preserve ${key}`);
 
-console.log(JSON.stringify(results, null, 2));
-if (!hasPasskeyControl || results.some((item) => item.status && item.status >= 400) || results.some((item) => Array.isArray(item.errors) && item.errors.length > 0)) process.exit(1);
+  await page.goto(`${baseUrl}/?${query}&view=voucher`, { waitUntil: "networkidle" });
+  assert.equal(await page.getByLabel("Voucher code").isVisible(), true);
+  await page.goto(`${baseUrl}/?view=internet`, { waitUntil: "networkidle" });
+  assert.equal(await page.getByRole("button", { name: "Pay with bitcoin", exact: true }).isDisabled(), true);
+  assert.match(await page.locator(".mesh-session-note").textContent(), /Connect to Mesh Wi-Fi/);
+  await page.goto(`${baseUrl}/connected`, { waitUntil: "networkidle" });
+  assert.match(await page.getByRole("heading", { level: 1 }).textContent(), /Welcome back/);
+  assert.equal(await page.getByText("Your access pass is active on this device.").count(), 0);
+  results.push({ name: "checkout-context", paymentContext: "preserved", voucherContext: "preserved", errorRecovery: "passed", voucherHandoff: "passed", missingDevice: "gated", unverifiedGrant: "not-active", realPaymentsCreated: 0 });
+  await context.close();
+
+  const adminContext = await browser.newContext();
+  const admin = await adminContext.newPage();
+  await admin.goto(`${baseUrl}/admin`, { waitUntil: "networkidle" });
+  assert(admin.url().includes("/admin/login"));
+  assert.equal(await admin.getByRole("button", { name: /Verify this device|Approve this device/ }).isVisible(), true);
+  results.push({ name: "admin-access", protected: true });
+  await adminContext.close();
+  await writeFile(`${output}/verification.json`, JSON.stringify(results, null, 2));
+  console.log(JSON.stringify(results, null, 2));
+} finally {
+  await browser.close();
+}

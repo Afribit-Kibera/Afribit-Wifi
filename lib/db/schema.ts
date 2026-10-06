@@ -5,9 +5,11 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -200,6 +202,32 @@ export const auditLogs = pgTable(
   (table) => [index("audit_logs_created_idx").on(table.createdAt)],
 );
 
+// Isolated Mesh native lane; legacy router_jobs cannot claim these orders.
+export const meshAgentRequests = pgTable("mesh_agent_requests", {
+  replayKey: text("replay_key").primaryKey(), routerId: text("router_id").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+}, table => [index("mesh_agent_requests_expiry_idx").on(table.expiresAt)]);
+export const meshAgentHeartbeat = pgTable("mesh_agent_heartbeat", {
+  routerId: text("router_id").primaryKey(), lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+});
+export const meshAccessContexts = pgTable("mesh_access_contexts", {
+  id: uuid("id").defaultRandom().primaryKey(), routerId: text("router_id").notNull(), server: text("server").notNull(),
+  macAddress: text("mac_address").notNull(), ipAddress: text("ip_address").notNull(),
+  joinTokenHash: text("join_token_hash").notNull(), browserTokenHash: text("browser_token_hash").notNull(),
+  joinExpiresAt: timestamp("join_expires_at", { withTimezone: true }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), joinedAt: timestamp("joined_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, table => [uniqueIndex("mesh_context_join_uidx").on(table.joinTokenHash)]);
+export const meshAccessOrders = pgTable("mesh_access_orders", {
+  id: uuid("id").primaryKey(), contextId: uuid("context_id").notNull().references(() => meshAccessContexts.id),
+  routerId: text("router_id").notNull(), paymentId: uuid("payment_id").references(() => payments.id), voucherId: uuid("voucher_id").references(() => vouchers.id),
+  grantId: uuid("grant_id").notNull().references(() => accessGrants.id),
+  status: text("status").notNull().default("queued"), encryptedOrder: text("encrypted_order").notNull(),
+  claimTokenHash: text("claim_token_hash"), claimedAt: timestamp("claimed_at", { withTimezone: true }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), lastError: text("last_error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, table => [uniqueIndex("mesh_order_payment_uidx").on(table.paymentId), uniqueIndex("mesh_order_voucher_context_uidx").on(table.voucherId, table.contextId), index("mesh_order_queue_idx").on(table.routerId, table.status)]);
+
 export const adminPasskeys = pgTable(
   "admin_passkeys",
   {
@@ -238,3 +266,17 @@ export const adminEnrollmentCodes = pgTable(
   },
   (table) => [uniqueIndex("admin_enrollment_codes_hash_uidx").on(table.codeHash), index("admin_enrollment_codes_expiry_idx").on(table.expiresAt)],
 );
+
+export const meshCheckoutReservations = pgTable("mesh_checkout_reservations", {
+  routerId: text("router_id").notNull(), macAddress: text("mac_address").notNull(),
+  paymentId: uuid("payment_id").notNull().references(() => payments.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, table => [primaryKey({ name: "mesh_checkout_device_pk", columns: [table.routerId, table.macAddress] }),
+  unique("mesh_checkout_payment_unique").on(table.paymentId)]);
+
+export const voucherRedemptionLimits = pgTable("voucher_redemption_limits", {
+  scopeKey: text("scope_key").primaryKey(),
+  windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull().defaultNow(),
+  attempts: integer("attempts").notNull().default(1),
+});

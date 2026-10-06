@@ -5,13 +5,14 @@ import { MAX_ADMIN_DEVICES, isAdminDeviceSlot } from "@/lib/admin-devices";
 import { db } from "@/lib/db";
 import { adminEnrollmentCodes, adminPasskeys } from "@/lib/db/schema";
 import { assertTrustedOrigin, hashEnrollmentCode, setWebAuthnChallenge, webAuthnConfig } from "@/lib/webauthn";
+import { readBoundedJson, RequestBodyError } from "@/lib/request-body";
 
 const inputSchema = z.object({ enrollmentCode: z.string().trim().min(8).max(120) });
 
 export async function POST(request: Request) {
   try {
     assertTrustedOrigin(request);
-    const input = inputSchema.parse(await request.json());
+    const input = inputSchema.parse(await readBoundedJson(request, 4096));
     const passkeys = await db.select().from(adminPasskeys).where(isNull(adminPasskeys.revokedAt));
     if (passkeys.length >= MAX_ADMIN_DEVICES) return Response.json({ error: "All admin device slots are already assigned" }, { status: 409 });
     const [enrollmentCode] = await db.select().from(adminEnrollmentCodes).where(and(eq(adminEnrollmentCodes.codeHash, hashEnrollmentCode(input.enrollmentCode)), isNull(adminEnrollmentCodes.usedAt), gt(adminEnrollmentCodes.expiresAt, new Date()))).limit(1);
@@ -32,6 +33,6 @@ export async function POST(request: Request) {
     await setWebAuthnChallenge({ purpose: "registration", challenge: options.challenge, deviceName: enrollmentCode.deviceName, deviceSlot: enrollmentCode.slot, enrollmentCodeId: enrollmentCode.id });
     return Response.json(options, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "Unable to register device" }, { status: 400 });
+    return Response.json({ error: error instanceof Error ? error.message : "Unable to register device" }, { status: error instanceof RequestBodyError ? error.status : 400 });
   }
 }

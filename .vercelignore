@@ -1,0 +1,10 @@
+# Keep device configuration, lab evidence and private environment files local.
+.env*
+artifacts/
+Doc/
+mikrotik/
+gateway-agent/
+scripts/
+tests/
+.github/
+*.docx

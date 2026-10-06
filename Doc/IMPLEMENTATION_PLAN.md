@@ -1,5 +1,7 @@
 # 3 West Satenet WiFi Backend Implementation Plan
 
+> Current execution documents: [Product Roadmap](./PRODUCT_ROADMAP.md), [Admin Control Plane and Router Onboarding](./ADMIN_CONTROL_PLANE.md), and [Research and Architecture](./RESEARCH_AND_ARCHITECTURE.md). This original plan records the first portal implementation; the linked roadmap now controls delivery order.
+
 ## Delivery Status - 24 August 2026
 
 - Completed: Next.js application, Vercel project, Neon PostgreSQL, schema, seed data, passkey-only admin authentication, mobile-first portal, package management, payment ledger, voucher batches and export, free-site policy, manual access controls, BTCPay integration code, short payment connectivity grants, gateway job API, and local MikroTik agent.

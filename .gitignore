@@ -9,4 +9,5 @@ coverage/
 artifacts/
 *.log
 *.tsbuildinfo
+__pycache__/
 drizzle/meta/_journal.json.bak

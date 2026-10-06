@@ -6,11 +6,12 @@ import { createAdminSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { adminEnrollmentCodes, adminPasskeys, auditLogs } from "@/lib/db/schema";
 import { assertTrustedOrigin, consumeWebAuthnChallenge, webAuthnConfig } from "@/lib/webauthn";
+import { readBoundedJson, RequestBodyError } from "@/lib/request-body";
 
 export async function POST(request: Request) {
   try {
     assertTrustedOrigin(request);
-    const response = await request.json() as RegistrationResponseJSON;
+    const response = await readBoundedJson(request, 64_000) as RegistrationResponseJSON;
     const challenge = await consumeWebAuthnChallenge("registration");
     if (!challenge.deviceName || !challenge.enrollmentCodeId || !challenge.deviceSlot || !isAdminDeviceSlot(challenge.deviceSlot)) throw new Error("Device authorization is missing");
     const activePasskeys = await db.select({ id: adminPasskeys.id }).from(adminPasskeys).where(isNull(adminPasskeys.revokedAt));
@@ -38,6 +39,6 @@ export async function POST(request: Request) {
     await createAdminSession(passkey.credentialId, passkey.deviceName);
     return Response.json({ verified: true, redirectTo: "/admin" });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "Device registration failed" }, { status: 400 });
+    return Response.json({ error: error instanceof Error ? error.message : "Device registration failed" }, { status: error instanceof RequestBodyError ? error.status : 400 });
   }
 }

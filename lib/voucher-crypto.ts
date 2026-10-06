@@ -1,6 +1,4 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
-
-const ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+import { createCipheriv, createDecipheriv, createHash, createHmac, hkdfSync, randomBytes, randomInt } from "node:crypto";
 
 function encryptionKey() {
   const value = process.env.VOUCHER_ENCRYPTION_KEY;
@@ -10,16 +8,23 @@ function encryptionKey() {
   return key;
 }
 
-export function generateVoucherCode(prefix = "3W") {
-  const bytes = randomBytes(12);
-  let body = "";
-  for (let index = 0; index < 12; index += 1) {
-    body += ALPHABET[bytes[index] % ALPHABET.length];
-  }
-  return `${prefix.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6)}-${body.slice(0, 4)}-${body.slice(4, 8)}-${body.slice(8)}`;
+export function generateVoucherCode() {
+  // randomInt uses rejection sampling: every six-digit value is equally likely.
+  // Leading zeroes belong to the code and must survive CSV export and input.
+  return randomInt(0, 1_000_000).toString().padStart(6, "0");
 }
 
 export function hashVoucherCode(code: string) {
+  const configured = process.env.VOUCHER_LOOKUP_KEY;
+  const key = configured === undefined
+    ? Buffer.from(hkdfSync("sha256", encryptionKey(), "afribit-mesh:voucher-lookup:v1", "lookup-only; separate from voucher export encryption", 32))
+    : Buffer.from(configured, "base64");
+  if (key.length !== 32 || (configured !== undefined && key.toString("base64") !== configured)) throw new Error("VOUCHER_LOOKUP_KEY must be a canonical 32-byte base64 key");
+  return `hmac-sha256-v1:${createHmac("sha256", key).update(normalizeVoucherCode(code)).digest("hex")}`;
+}
+
+/** Only for bounded migration lookup/collision checks; never new issuance. */
+export function hashLegacyVoucherCode(code: string) {
   return createHash("sha256").update(normalizeVoucherCode(code)).digest("hex");
 }
 

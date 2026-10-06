@@ -1,43 +1,96 @@
-# 3 West Satenet WiFi
+# Mesh by Afribit
 
-Paid captive-portal and network operations backend for `wifi.afribit.africa`.
+Captive welcome, internet passes, free app access and network operations for
+**https://wifi.afribit.africa**. The current release supports the supervised
+single-device home pilot. It is not clearance to replace the live 3WEST gateway.
 
-## Stack
+Start with the [developer handoff](Doc/mesh/mesh-developer-handoff.md),
+[Mesh documentation](Doc/mesh/README.md) and
+[pilot/security/device decision](Doc/mesh/mesh-pilot-readiness-and-device-plans.md).
 
-- Next.js 16 App Router on Vercel
-- Neon PostgreSQL with Drizzle ORM
-- BTCPay Server Greenfield API and signed webhooks
-- Local outbound-only MikroTik RouterOS gateway agent
-- Tailwind CSS, Lucide, shadcn-compatible registries, and Anime.js
+## Architecture
 
-## Local Setup
+- Next.js 16 App Router on Vercel; Neon PostgreSQL with Drizzle ORM.
+- Router-hosted welcome assets link to the HTTPS catalogue. Checkout uses
+  router-attested device context, not trusted browser MAC addresses.
+- Bitika is the preferred M-Pesa provider and settles Bitcoin directly to the
+  configured Lightning address. Paystack is a backend fallback with separate
+  Insats conversion/Bitcoin settlement. Readiness checks gate checkout.
+- The always-on LunaNode controller at `mesh-core.afribit.africa` manages the
+  enrolled spare MikroTik through WireGuard and pinned SSH. Durable orders,
+  acknowledgements and router deadlines provide automatic paid access.
+- Administration uses provisioned passkeys. Vouchers use encrypted storage,
+  keyed lookups and durable redemption limits.
+
+The cloud controller replaces the laptop worker for paid internet. Offline
+communications still need a local network and suitable apps; cloud hosting
+does not make those services available during a WAN outage.
+
+## Local development
+
+Use Node.js 24 and the committed lockfile:
 
 ```powershell
-npm install
-vercel link --scope novyrix-teams --project bitcoin-valley-wifi
-vercel env pull .env.local --yes --environment development
-npm run db:push
-npm run db:seed
+npm ci
+Copy-Item .env.example .env.local
 npm run dev
 ```
 
-The portal runs at `http://localhost:3000`; passkey admin is at `/admin`; health is at `/api/health`.
+Fill `.env.local` with a **disposable development database** and development
+secrets. Provider and automatic-access flags default off. Obtain production
+access privately from the operator. The portal runs at `http://localhost:3000`;
+administration is at `/admin`.
 
-## Required Production Activation
+For a new disposable database only, review the schema and seed before running
+`npm run db:push` and `npm run db:seed`. Do not run either against production.
+The existing production database already has additive Mesh migrations installed.
 
-1. In BTCPay store settings, connect the Bitcoin wallet and Lightning payment source that will receive customer funds. Invoice creation cannot work until the store has a wallet.
-2. Retrieve one of the three operator-only codes from `.env.admin-pairing-codes.local` and use it once at `/admin/login` on its assigned device.
-3. Review and import `mikrotik/bitcoin-valley-hotspot.rsc`, then upload `mikrotik/hotspot-bv` to the router.
-4. Copy `.env.gateway.example` to `.env.gateway` on the LAN machine and fill the gateway and RouterOS credentials.
-5. Run `npm run gateway:dev` under a process manager or system service.
-
-Admin codes are created out of band with `npm run admin:provision-devices`; there is no admin self-registration or in-app code generator. After revoking a lost device, a database operator can provision only that slot with `npm run admin:provision-devices -- --slot 2 --name "Replacement laptop"`. This application uses BTCPay invoice create/view and webhook modification permissions. Never expose the MikroTik API publicly.
+Read `AGENTS.md` and the relevant installed guide under
+`node_modules/next/dist/docs/` before changing framework code.
 
 ## Verification
 
 ```powershell
+npm run test:payments
+npm run test:mesh-access
+npm run test:production-guards
+npm run test:security
 npm run lint
 npm run typecheck
 npm run build
-node tests/visual-check.mjs
+npm audit --omit=dev
 ```
+
+These suites use fixtures and isolated databases without collecting money.
+Live payment, settlement and router scripts are operational tools with real
+effects. Read their runbooks before using them.
+
+## Deployments
+
+The Vercel project is `novyrix-teams/bitcoin-valley-wifi`:
+
+```powershell
+npx vercel link --scope novyrix-teams --project bitcoin-valley-wifi
+npx vercel project inspect --non-interactive
+npx vercel --prod --yes
+```
+
+Check the project before deploying. `.vercelignore` excludes documentation,
+router tooling, tests, lab evidence and private environment files from the app
+upload. Git excludes secrets and all `artifacts/`; clones contain no production
+database URL, VM private key or payment credentials.
+
+Controller, database and router upgrades have separate ordered procedures. Use
+the [handoff](Doc/mesh/mesh-developer-handoff.md) and
+[operations runbook](Doc/mesh/mesh-production-operations.md).
+Do not import lab `.rsc` files into a serving router without a reviewed site
+configuration and backup. `gateway:dev` and `mikrotik/bitcoin-valley-hotspot.rsc`
+are legacy paths, not the commissioned Mesh controller deployment.
+
+## Scope before field rollout
+
+TV sponsorship, family device slots, customer migration and production plan
+parity remain implementation work. Multi-client radio/forwarding stress tests,
+restore drills, management isolation and credential rotation remain rollout
+gates. See [3WEST readiness](Doc/mesh/3west-production-readiness.md) and the
+[roadmap](Doc/mesh/mesh-status-and-roadmap-2026-10-06.md).

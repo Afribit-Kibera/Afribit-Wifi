@@ -4,6 +4,8 @@ import { getBtcpayInvoice, mapBtcpayStatus } from "@/lib/btcpay";
 import { queuePaidAccess } from "@/lib/access";
 import { db } from "@/lib/db";
 import { accessGrants, payments } from "@/lib/db/schema";
+import { readBoundedText, RequestBodyError } from "@/lib/request-body";
+import { z } from "zod";
 
 function validSignature(rawBody: string, signature: string | null) {
   const secret = process.env.BTCPAY_WEBHOOK_SECRET;
@@ -15,18 +17,25 @@ function validSignature(rawBody: string, signature: string | null) {
 }
 
 export async function POST(request: Request) {
-  const rawBody = await request.text();
+  let rawBody: string;
+  try { rawBody = await readBoundedText(request, 64_000); }
+  catch (error) { return Response.json({ error: "Invalid event body" }, { status: error instanceof RequestBodyError ? error.status : 400 }); }
   if (!validSignature(rawBody, request.headers.get("btcpay-sig"))) {
     return Response.json({ error: "Invalid signature" }, { status: 401 });
   }
 
-  const event = JSON.parse(rawBody) as { invoiceId?: string };
+  let payload: unknown;
+  try { payload = JSON.parse(rawBody); }
+  catch { return Response.json({ error: "Invalid event" }, { status: 400 }); }
+  const parsed = z.object({ invoiceId: z.string().min(1).max(200).optional() }).safeParse(payload);
+  if (!parsed.success) return Response.json({ error: "Invalid event" }, { status: 400 });
+  const event = parsed.data;
   if (!event.invoiceId) return Response.json({ received: true });
 
   const [payment] = await db
     .select()
     .from(payments)
-    .where(eq(payments.providerInvoiceId, event.invoiceId))
+    .where(and(eq(payments.provider, "btcpay"), eq(payments.providerInvoiceId, event.invoiceId)))
     .limit(1);
   if (!payment) return Response.json({ received: true });
 

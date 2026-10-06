@@ -1,0 +1,6 @@
+{
+  "captive": $(if logged-in == 'yes')false$(else)true$(endif),
+  "user-portal-url": "$(link-login-only)",
+  "venue-info-url": "http://10.30.0.1/mesh.html",
+  "can-extend-session": false
+}

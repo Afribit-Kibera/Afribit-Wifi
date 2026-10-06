@@ -1,0 +1,4 @@
+$(if http-status == 302)Mesh redirect$(endif)
+$(if http-header == "Location")$(link-redirect)$(endif)
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="0;url=$(link-redirect)"><meta http-equiv="cache-control" content="no-store"><title>Mesh</title></head><body><a href="$(link-redirect)">Continue</a></body></html>

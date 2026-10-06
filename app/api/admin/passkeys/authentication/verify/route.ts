@@ -5,11 +5,12 @@ import { createAdminSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { adminPasskeys, auditLogs } from "@/lib/db/schema";
 import { assertTrustedOrigin, consumeWebAuthnChallenge, webAuthnConfig } from "@/lib/webauthn";
+import { readBoundedJson, RequestBodyError } from "@/lib/request-body";
 
 export async function POST(request: Request) {
   try {
     assertTrustedOrigin(request);
-    const response = await request.json() as AuthenticationResponseJSON;
+    const response = await readBoundedJson(request, 64_000) as AuthenticationResponseJSON;
     const challenge = await consumeWebAuthnChallenge("authentication");
     const [passkey] = await db.select().from(adminPasskeys).where(and(eq(adminPasskeys.credentialId, response.id), isNull(adminPasskeys.revokedAt))).limit(1);
     if (!passkey) return Response.json({ error: "This device is not approved" }, { status: 401 });
@@ -33,6 +34,6 @@ export async function POST(request: Request) {
     await db.insert(auditLogs).values({ actor: `passkey:${passkey.deviceName}`, action: "admin.signed_in", entityType: "admin_passkey", entityId: passkey.id });
     return Response.json({ verified: true });
   } catch (error) {
-    return Response.json({ error: error instanceof Error ? error.message : "Device verification failed" }, { status: 400 });
+    return Response.json({ error: error instanceof Error ? error.message : "Device verification failed" }, { status: error instanceof RequestBodyError ? error.status : 400 });
   }
 }

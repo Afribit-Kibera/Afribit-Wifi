@@ -2,6 +2,7 @@ import { and, asc, eq, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { accessGrants, routerJobs } from "@/lib/db/schema";
 import { isGatewayAuthorized } from "@/lib/gateway-auth";
+import { meshAutomaticAccessEnabled } from "@/lib/mesh-access/config";
 
 async function enqueueExpiredGrants() {
   const expired = await db.select().from(accessGrants).where(and(eq(accessGrants.status, "active"), lte(accessGrants.expiresAt, new Date()))).limit(100);
@@ -13,6 +14,12 @@ async function enqueueExpiredGrants() {
 
 export async function POST(request: Request) {
   if (!isGatewayAuthorized(request)) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  // The older shared queue can create unmetered IP bypasses and has no enrolled
+  // router scope. It must never operate alongside the native Mesh controller.
+  if (meshAutomaticAccessEnabled()) return Response.json(
+    { error: "Legacy gateway is disabled while automatic Mesh access is enabled" },
+    { status: 409, headers: { "Cache-Control": "no-store" } },
+  );
   await enqueueExpiredGrants();
 
   for (let attempt = 0; attempt < 3; attempt += 1) {

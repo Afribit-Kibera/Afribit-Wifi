@@ -26,9 +26,9 @@ async function seed() {
   for (const item of packageSeeds) {
     const existing = await db.select({ id: packages.id }).from(packages).where(eq(packages.name, item.name)).limit(1);
     if (existing.length === 0) {
-      await db.insert(packages).values({ ...item, speedLimitKbps: 8192 });
+      await db.insert(packages).values({ ...item, speedLimitKbps: 50000 });
     } else {
-      await db.update(packages).set({ ...item, speedLimitKbps: 8192, active: true, updatedAt: new Date() }).where(eq(packages.id, existing[0].id));
+      await db.update(packages).set({ ...item, speedLimitKbps: 50000, active: true, updatedAt: new Date() }).where(eq(packages.id, existing[0].id));
     }
   }
 

@@ -1,17 +1,23 @@
 import Link from "next/link";
-import { CheckCircle2, Wifi } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/brand-mark";
+import { MeshConnectionStatus, type MeshConnectionState } from "@/components/mesh-connection-status";
 
-export default function ConnectedPage() {
+export default async function ConnectedPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const query = await searchParams;
+  const grantId = typeof query.grant === "string" ? query.grant : undefined;
+  const paymentId = typeof query.payment === "string" ? query.payment : undefined;
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const validPaymentId = paymentId && uuid.test(paymentId) ? paymentId : undefined;
+  const validGrantId = grantId && uuid.test(grantId) ? grantId : undefined;
+  // The browser's HttpOnly Mesh session authenticates the status request. A
+  // public payment/grant UUID alone cannot establish customer ownership.
+  const state: MeshConnectionState = validPaymentId || validGrantId ? "pending" : "unknown";
   return (
-    <main className="portal-shell grid min-h-screen place-items-center p-5">
-      <section className="panel w-full max-w-md p-7 text-center">
-        <BrandMark className="justify-center" />
-        <CheckCircle2 className="mx-auto mt-10 text-[var(--green-bright)]" size={46} />
-        <h1 className="mt-5 text-3xl font-bold">You are connected.</h1>
-        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Your access pass is active on this device.</p>
-        <Button asChild className="mt-7 w-full"><Link href="https://google.com"><Wifi size={17} /> Start browsing</Link></Button>
+    <main className="mesh-flow">
+      <section className="mesh-flow-card">
+        <Link href="/" aria-label="Return to Mesh"><BrandMark /></Link>
+        <div className="flow-rule" />
+        <MeshConnectionStatus state={state} paymentId={validPaymentId} grantId={validGrantId} />
       </section>
     </main>
   );

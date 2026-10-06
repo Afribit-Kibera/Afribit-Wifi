@@ -1,0 +1,31 @@
+[info]
+relay_url = "ws://10.20.0.10:7777/"
+name = "Kibera Mesh Lab Relay 001"
+description = "Local lab relay for signed community posts. Public posts; disposable lab identities."
+
+[database]
+engine = "sqlite"
+data_directory = "/usr/src/app/db"
+max_conn = 4
+
+[network]
+address = "0.0.0.0"
+port = 8080
+
+[options]
+reject_future_seconds = 1800
+
+[limits]
+max_event_bytes = 16384
+max_ws_message_bytes = 32768
+max_ws_frame_bytes = 32768
+messages_per_sec = 5
+event_kind_allowlist = [0, 1, 3, 5, 7]
+broadcast_buffer = 1024
+event_persist_buffer = 1024
+
+[verified_users]
+mode = "disabled"
+
+[pay_to_relay]
+enabled = false

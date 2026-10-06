@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4f1e9">
+  <meta name="referrer" content="no-referrer">
+  <title>Explore Mesh</title>
+  <style>
+    :root{color-scheme:light;--paper:#f4f1e9;--ink:#203c32;--muted:#626b61;--line:#d8ddd1;--citron:#dff58b}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.page{max-width:580px;margin:auto;padding:28px 23px calc(30px + env(safe-area-inset-bottom))}a{color:inherit}a:focus-visible,button:focus-visible{outline:3px solid var(--ink);outline-offset:5px}.brand{display:inline-flex;align-items:center;gap:9px;min-height:44px;font-size:29px;font-weight:650;letter-spacing:-1.6px;text-decoration:none}.brand svg{width:33px;height:33px}.eyebrow{margin:34px 0 12px;font-size:11px;font-weight:650;letter-spacing:1.5px;text-transform:uppercase}h1{font-size:clamp(39px,10vw,52px);font-weight:650;line-height:1.06;letter-spacing:-2px;margin:0}.intro{color:var(--muted);margin:18px 0 26px;max-width:370px}.card{padding:23px;border-radius:21px;background:var(--citron)}.label{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:1px}h2{font-size:28px;line-height:1.15;letter-spacing:-.7px;margin:12px 0}p{margin:0}.card p{font-size:14px;max-width:340px}.action{display:inline-flex;align-items:center;justify-content:center;gap:15px;min-height:48px;border:0;border-radius:12px;padding:0 18px;margin-top:24px;background:var(--ink);color:var(--paper);font:650 14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}.action:disabled{opacity:.7;cursor:default}.note{color:var(--muted);font-size:12px;margin:18px 0 26px}.later{border-top:1px solid var(--line);padding:18px 0;color:var(--muted)}.later h2{color:var(--ink);font-size:19px;margin:0 0 5px}.later p{font-size:13px}.back{display:inline-flex;align-items:center;min-height:44px;font-size:13px;font-weight:650;margin-top:15px;text-underline-offset:4px}.footer{margin-top:30px;color:var(--muted);font-size:11px}@media(min-width:500px){.page{padding:35px 32px 42px}}@media(forced-colors:active){.card,.action{border:1px solid CanvasText}}
+  </style>
+  <style>
+    [hidden]{display:none!important}.browser-handoff{margin-top:22px;padding-top:18px;border-top:1px solid #b7ce7f}.browser-handoff p{font-size:13px}.browser-address{margin-top:10px;font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere;user-select:all}.address-action{min-height:44px;margin-top:10px;padding:0 14px;background:transparent;color:var(--ink);border:1px solid var(--ink);border-radius:9px;font:600 13px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer}.copy-status{margin-top:8px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a class="brand" href="$(link-login-only)" aria-label="Mesh welcome"><svg viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M4 26V12a6 6 0 0 1 12 0v12a6 6 0 0 0 12 0V10M10 26V12a6 6 0 0 1 12 0v12a6 6 0 0 0 12 0V10" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>Mesh</a>
+    <div class="eyebrow">Closer to home</div>
+    <h1>Your neighbourhood,<br>connected.</h1>
+    <p class="intro">Discover the services hosted nearby. No internet pass needed.</p>
+    <section class="card" aria-labelledby="board-heading">
+      <span class="label">Community</span>
+      <h2 id="board-heading">The community board.</h2>
+      <p>A shared space for local notes and conversations.</p>
+      <button class="action" id="community-board" type="button" disabled>Open the board <span aria-hidden="true">↗</span></button>
+      <div class="browser-handoff" id="browser-handoff" hidden>
+        <p>For conversations, open this address in Safari or Chrome. Stay connected to Mesh.</p>
+        <p class="browser-address" id="browser-address"></p>
+        <button class="address-action" id="board-address-action" type="button">Select address</button>
+        <p class="copy-status" id="board-copy-status" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+    <p class="note" id="board-note">This service is being prepared.</p>
+    <section class="later"><h2>Room to learn.</h2><p>Local learning resources are coming to Mesh.</p></section>
+    <section class="later"><h2>More to share.</h2><p>Shared media services are coming to Mesh.</p></section>
+    <a class="back" href="$(link-login-only)">Back to Mesh</a>
+    <noscript><p class="note">Enable JavaScript to open the configured community services.</p></noscript>
+    <p class="footer">Mesh by Afribit</p>
+  </main>
+  <script src="site-config.js"></script>
+  <script>
+    (function () {
+      "use strict";
+      var value = (window.MESH_SITE || {}).communityBoardUrl;
+      if (typeof value !== "string" || !value.trim()) return;
+      try {
+        var url = new URL(value);
+        if ((url.protocol !== "http:" && url.protocol !== "https:") || url.username || url.password) return;
+        var action = document.getElementById("community-board");
+        action.disabled = false;
+        action.addEventListener("click", function () { window.location.assign(url.href); });
+        var address = document.getElementById("browser-address");
+        address.textContent = url.href;
+        document.getElementById("browser-handoff").hidden = false;
+        var addressAction = document.getElementById("board-address-action");
+        if (navigator.clipboard && navigator.clipboard.writeText) addressAction.textContent = "Copy address";
+        addressAction.addEventListener("click", async function () {
+          var message = document.getElementById("board-copy-status");
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            try {
+              await navigator.clipboard.writeText(url.href);
+              message.textContent = "Address copied. Open your browser and paste it.";
+              return;
+            } catch (_) {}
+          }
+          var selection = window.getSelection();
+          var range = document.createRange();
+          range.selectNodeContents(address);
+          selection.removeAllRanges();
+          selection.addRange(range);
+          message.textContent = "Address selected. Choose Copy, then paste it in your browser.";
+        });
+        document.getElementById("board-note").textContent = "Open in your regular browser for the full experience. Available while the local service is running.";
+      } catch (_) {}
+    }());
+  </script>
+</body>
+</html>
