@@ -26,7 +26,7 @@ This gives the project a clean production path:
 
 Target GitHub repository:
 
-- `https://github.com/novyrix/Afribit-Wifi.git`
+- `https://github.com/Afribit-Kibera/Afribit-Wifi.git`
 
 Do not commit secrets. Credentials should be configured only as local environment variables, Vercel project environment variables, or gateway agent environment variables.
 

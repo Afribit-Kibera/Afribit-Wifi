@@ -18,7 +18,7 @@ tests and Vercel's independent Git build passed.
 
 ## Start here
 
-Repository: https://github.com/novyrix/Afribit-Wifi (public).
+Repository: https://github.com/Afribit-Kibera/Afribit-Wifi (public).
 Application: https://wifi.afribit.africa.
 Controller: https://mesh-core.afribit.africa.
 Vercel: `novyrix-teams/bitcoin-valley-wifi`.
