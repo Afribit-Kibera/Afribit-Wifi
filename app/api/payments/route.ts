@@ -15,6 +15,7 @@ import { validateAccessPackage } from "@/lib/mesh-access/model";
 import { readBoundedJson, RequestBodyError } from "@/lib/request-body";
 import { consumeCheckoutAttempt } from "@/lib/payments/checkout-rate-limit";
 import { reserveMeshCheckout } from "@/lib/mesh-access/checkout-reservation";
+import { deviceKeyHash, packageDeviceRules, PassError, readDeviceKey, resolveDeviceCode } from "@/lib/mesh-access/passes";
 
 const paymentSchema = z.object({
   packageId: z.string().uuid(),
@@ -26,6 +27,8 @@ const paymentSchema = z.object({
   provider: z.enum(paymentProviderIds).default("btcpay"),
   requestId: z.string().uuid().optional(),
   phone: z.string().max(32).optional(),
+  // Pay for another device on this Mesh network (a TV, a child's phone) by the code it shows.
+  forDeviceCode: z.string().trim().max(16).optional(),
 });
 
 export async function POST(request: Request) {
@@ -37,9 +40,22 @@ export async function POST(request: Request) {
 
   const input = parsed.data;
   const automaticAccess = meshAutomaticAccessEnabled();
-  const context = automaticAccess ? await getTrustedMeshContext(request) : null;
+  const payer = automaticAccess ? await getTrustedMeshContext(request) : null;
   if (automaticAccess && !meshAutomaticAccessReady()) return Response.json({ error: "Internet checkout is temporarily unavailable" }, { status: 503 });
-  if (automaticAccess && !context) return Response.json({ error: "Reopen the Mesh Wi-Fi welcome page before buying a pass" }, { status: 401 });
+  if (automaticAccess && !payer) return Response.json({ error: "Reopen the Mesh Wi-Fi welcome page before buying a pass" }, { status: 401 });
+  // The device that receives internet. It is still router-attested: the code
+  // was created by that device's own Mesh session, never typed as a MAC.
+  let context = payer;
+  if (payer && input.forDeviceCode) {
+    try {
+      const target = await resolveDeviceCode(input.forDeviceCode);
+      if (target.macAddress === payer.macAddress) return Response.json({ error: "That code is for this phone. Buy a pass normally instead." }, { status: 400 });
+      context = { ...target, loginUrl: payer.loginUrl };
+    } catch (error) {
+      return Response.json({ error: error instanceof PassError ? error.message : "That device code could not be checked" }, { status: error instanceof PassError ? error.status : 503 });
+    }
+  }
+  const payerKey = readDeviceKey(request);
   if (context) {
     // The enrolled router attests the actual host. Browser query parameters
     // cannot choose another device or a management address for paid access.
@@ -76,7 +92,8 @@ export async function POST(request: Request) {
   }
 
   const paymentId = input.requestId ?? randomUUID();
-  const fingerprint = createHash("sha256").update(JSON.stringify([input.provider, input.packageId, input.macAddress.toUpperCase(), input.ipAddress ?? "", input.routerId ?? "", input.loginUrl ?? "", input.originalUrl ?? "", phone ?? ""])).digest("hex");
+  const fingerprint = createHash("sha256").update(JSON.stringify([input.provider, input.packageId, input.macAddress.toUpperCase(), input.ipAddress ?? "", input.routerId ?? "", input.loginUrl ?? "", input.originalUrl ?? "", phone ?? "", payer?.id ?? ""])).digest("hex");
+  const passRules = packageDeviceRules(wifiPackage.kind, wifiPackage.deviceLimit);
   const [previous] = await db.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
   if (previous && previous.metadata.requestFingerprint !== fingerprint) return Response.json({ error: "This payment reference belongs to a different request" }, { status: 409 });
   if (context && previous && previous.metadata.meshContextId !== context.id) return Response.json({ error: "This payment reference belongs to a different request" }, { status: 409 });
@@ -88,7 +105,7 @@ export async function POST(request: Request) {
   if (context && input.provider !== "btcpay" && (!previous || resumeUnstarted)) {
     try {
       if (!previous) {
-        const attempt = await consumeCheckoutAttempt({ routerId: context.routerId, macAddress: context.macAddress, phone: phone! });
+        const attempt = await consumeCheckoutAttempt({ routerId: payer!.routerId, macAddress: payer!.macAddress, phone: phone! });
         if (!attempt.allowed) return Response.json({ error: "Too many payment attempts. Wait before requesting another M-Pesa prompt." },
           { status: 429, headers: { "Retry-After": String(attempt.retryAfter), "Cache-Control": "no-store" } });
       }
@@ -110,7 +127,8 @@ export async function POST(request: Request) {
       amountSats: wifiPackage.priceSats,
       ...(input.provider === "paystack" ? { providerInvoiceId: `mesh-${paymentId}`, checkoutUrl: `/pay/${paymentId}` } : {}),
       metadata: { packageName: wifiPackage.name, priceKes: wifiPackage.priceKes, requestFingerprint: fingerprint,
-        access, collectionGuardVersion: 1, ...(context ? { meshContextId: context.id } : {}),
+        access, pass: passRules, collectionGuardVersion: 1, ...(context ? { meshContextId: context.id } : {}),
+        ...(payer ? { payerContextId: payer.id } : {}), ...(payerKey ? { payerDeviceKeyHash: deviceKeyHash(payerKey) } : {}),
         ...(input.provider === "paystack" ? { paystack: { mode: "live", amountKes: wifiPackage.priceKes, paymentId, status: "processing", collectionConfirmed: false } } : {}),
         ...(bitika ? { bitika: { mode: bitika.mode, amountKes: wifiPackage.priceKes, lightningAddress: bitika.lightningAddress, status: "processing" } } : {}) },
     })

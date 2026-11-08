@@ -53,6 +53,10 @@ export const packages = pgTable("packages", {
   durationMinutes: integer("duration_minutes").notNull(),
   dataLimitMb: integer("data_limit_mb"),
   speedLimitKbps: integer("speed_limit_kbps"),
+  // personal: the buying device. household: up to deviceLimit devices.
+  // tv: bought on a phone for another screen that shows a device code.
+  kind: text("kind").notNull().default("personal"),
+  deviceLimit: integer("device_limit").notNull().default(1),
   active: boolean("active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -216,8 +220,9 @@ export const meshAccessContexts = pgTable("mesh_access_contexts", {
   joinTokenHash: text("join_token_hash").notNull(), browserTokenHash: text("browser_token_hash").notNull(),
   joinExpiresAt: timestamp("join_expires_at", { withTimezone: true }).notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), joinedAt: timestamp("joined_at", { withTimezone: true }),
+  deviceKeyHash: text("device_key_hash"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-}, table => [uniqueIndex("mesh_context_join_uidx").on(table.joinTokenHash)]);
+}, table => [uniqueIndex("mesh_context_join_uidx").on(table.joinTokenHash), index("mesh_context_device_key_idx").on(table.deviceKeyHash)]);
 export const meshAccessOrders = pgTable("mesh_access_orders", {
   id: uuid("id").primaryKey(), contextId: uuid("context_id").notNull().references(() => meshAccessContexts.id),
   routerId: text("router_id").notNull(), paymentId: uuid("payment_id").references(() => payments.id), voucherId: uuid("voucher_id").references(() => vouchers.id),
@@ -225,8 +230,49 @@ export const meshAccessOrders = pgTable("mesh_access_orders", {
   status: text("status").notNull().default("queued"), encryptedOrder: text("encrypted_order").notNull(),
   claimTokenHash: text("claim_token_hash"), claimedAt: timestamp("claimed_at", { withTimezone: true }),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), lastError: text("last_error"),
+  // Set once the order belongs to a pass device slot (see mesh_passes).
+  passDeviceId: uuid("pass_device_id"),
+  revokeClaimTokenHash: text("revoke_claim_token_hash"), revokeClaimedAt: timestamp("revoke_claimed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(), updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-}, table => [uniqueIndex("mesh_order_payment_uidx").on(table.paymentId), uniqueIndex("mesh_order_voucher_context_uidx").on(table.voucherId, table.contextId), index("mesh_order_queue_idx").on(table.routerId, table.status)]);
+}, table => [uniqueIndex("mesh_order_payment_origin_uidx").on(table.paymentId).where(sql`${table.passDeviceId} IS NULL`),
+  uniqueIndex("mesh_order_device_live_uidx").on(table.passDeviceId).where(sql`${table.status} IN ('queued','claimed','active')`),
+  uniqueIndex("mesh_order_voucher_origin_uidx").on(table.voucherId, table.contextId).where(sql`${table.passDeviceId} IS NULL`), index("mesh_order_queue_idx").on(table.routerId, table.status)]);
+
+// One purchase or voucher becomes a pass: a deadline, limits, a recovery code
+// and up to deviceLimit device slots. Time never restarts when a slot moves.
+export const meshPasses = pgTable("mesh_passes", {
+  id: uuid("id").primaryKey(), routerId: text("router_id").notNull(), kind: text("kind").notNull().default("personal"),
+  deviceLimit: integer("device_limit").notNull().default(1),
+  originOrderId: uuid("origin_order_id").notNull().references(() => meshAccessOrders.id),
+  paymentId: uuid("payment_id").references(() => payments.id), voucherId: uuid("voucher_id").references(() => vouchers.id),
+  codeHash: text("code_hash").notNull(), codeCiphertext: text("code_ciphertext").notNull(),
+  payerDeviceKeyHash: text("payer_device_key_hash"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), dataLimitMb: integer("data_limit_mb"),
+  speedLimitKbps: integer("speed_limit_kbps").notNull(),
+  movesWindowStartedAt: timestamp("moves_window_started_at", { withTimezone: true }).notNull().defaultNow(),
+  movesInWindow: integer("moves_in_window").notNull().default(0),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, table => [uniqueIndex("mesh_passes_origin_order_id_key").on(table.originOrderId), uniqueIndex("mesh_passes_code_hash_key").on(table.codeHash),
+  uniqueIndex("mesh_passes_payment_id_key").on(table.paymentId),
+  index("mesh_pass_payer_idx").on(table.payerDeviceKeyHash)]);
+export const meshPassDevices = pgTable("mesh_pass_devices", {
+  id: uuid("id").primaryKey(), passId: uuid("pass_id").notNull().references(() => meshPasses.id), slot: integer("slot").notNull(),
+  deviceKeyHash: text("device_key_hash"), label: text("label").notNull(), macAddress: text("mac_address").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  lastBoundAt: timestamp("last_bound_at", { withTimezone: true }).notNull().defaultNow(),
+  removedAt: timestamp("removed_at", { withTimezone: true }),
+}, table => [uniqueIndex("mesh_pass_device_slot_uidx").on(table.passId, table.slot).where(sql`${table.removedAt} IS NULL`),
+  index("mesh_pass_device_key_idx").on(table.deviceKeyHash)]);
+export const meshDeviceCodes = pgTable("mesh_device_codes", {
+  codeHash: text("code_hash").primaryKey(), contextId: uuid("context_id").notNull().references(() => meshAccessContexts.id),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(), usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, table => [index("mesh_device_code_context_idx").on(table.contextId)]);
+export const meshRouterTelemetry = pgTable("mesh_router_telemetry", {
+  routerId: text("router_id").primaryKey(), payload: jsonb("payload").$type<Record<string, unknown>>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const adminPasskeys = pgTable(
   "admin_passkeys",

@@ -31,6 +31,8 @@
     .internet p{margin:0 0 16px;color:var(--muted);font-size:13px;line-height:1.6;max-width:365px}
     .buy{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;padding:14px 15px;background:var(--orange);color:var(--ink);border:1px solid transparent;border-radius:8px;font-weight:650;font-size:14px;text-align:left}
     .buy svg{width:19px;height:19px;flex:none}.buy:disabled{background:var(--orange-soft);border-color:#ebcfa8;color:#65513b}
+    .explore{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;margin-top:10px;padding:12px 15px;background:#203c32;color:#fffaf2;border:1px solid transparent;border-radius:8px;font-weight:650;font-size:14px;text-align:left}
+    .explore small{display:block;font-weight:400;font-size:11px;color:#dff58b;margin-top:2px}.explore svg{width:19px;height:19px;flex:none}.explore:disabled{background:#d8dbce;color:#53665b}.explore:disabled small{color:#53665b}
     .billing-state{margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5;text-align:center}
     .voucher{display:block;min-height:44px;margin:3px auto -2px;background:none;border:0;color:var(--accent);font-size:12px;padding:9px 10px;text-decoration:underline;text-underline-offset:4px}.voucher:disabled{color:var(--muted)}
     .bitcoin{display:flex;align-items:flex-start;gap:13px;padding:25px 10px 23px}
@@ -69,7 +71,7 @@
     </header>
     <main>
       <section class="hero" aria-labelledby="welcome-heading">
-        <img class="hero-photo" src="mesh-kibera-market-960.jpg" srcset="mesh-kibera-market-960.jpg 960w, mesh-kibera-market-1440.jpg 1440w, mesh-kibera-market-3840.jpg 3840w" sizes="(max-width: 350px) calc(100vw - 28px), (max-width: 519px) calc(100vw - 36px), 468px" width="960" height="640" alt="Customers and vendors at a Kibera vegetable stall with a Bitcoin accepted here sign.">
+        <img class="hero-photo" src="mesh-kibera-market-960.jpg" srcset="mesh-kibera-market-960.jpg 960w, mesh-kibera-market-1440.jpg 1440w" sizes="(max-width: 350px) calc(100vw - 28px), (max-width: 519px) calc(100vw - 36px), 468px" width="960" height="640" alt="Customers and vendors at a Kibera vegetable stall with a Bitcoin accepted here sign.">
         <div class="hero-copy">
           <p class="eyebrow">Powered by Bitcoin</p>
           <h1 id="welcome-heading">Welcome<br>to Mesh.</h1>
@@ -78,7 +80,7 @@
       </section>
       <section class="internet" aria-labelledby="internet-heading">
         <h2 id="internet-heading">Get online.</h2>
-        <p>Choose a pass. Pay with M-Pesa.</p>
+        <p>Choose a pass. Pay with M-Pesa. Already paid? Tap either button and your pass reconnects.</p>
         <!-- Commission billing for this exact access router before enabling purchase. -->
         <form id="internet-form" action="https://wifi.afribit.africa/" method="get">
           <input type="hidden" name="view" value="internet">
@@ -88,8 +90,9 @@
           <input type="hidden" name="link-login" value="$(link-login)">
           <input type="hidden" name="link-orig" value="$(link-orig)">
           <button class="buy" id="buy" type="submit" aria-describedby="billing-state" disabled>Choose an internet pass <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+          <button class="explore" id="explore" type="submit" disabled><span>Explore Mesh<small>Free learning, apps and local services</small></span><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
           <div class="billing-state" id="billing-state" role="status">Internet passes are temporarily unavailable. Please check again shortly.</div>
-          <button class="voucher" id="voucher" type="submit" aria-describedby="billing-state" disabled>Already have a voucher?</button>
+          <button class="voucher" id="voucher" type="submit" aria-describedby="billing-state" disabled>Have a voucher or pass code?</button>
         </form>
       </section>
       <section class="bitcoin" aria-labelledby="bitcoin-heading">
@@ -133,6 +136,7 @@
       var form = document.getElementById("internet-form");
       var buy = document.getElementById("buy");
       var voucher = document.getElementById("voucher");
+      var explore = document.getElementById("explore");
       var router = document.getElementById("router-id");
       var view = form.elements.namedItem("view");
       // Payment context carries a browser capability: never obtain it over
@@ -148,10 +152,12 @@
         router.value = site.routerId;
         buy.disabled = false;
         voucher.disabled = false;
+        explore.disabled = false;
         document.getElementById("billing-state").textContent = "Choose your pass. See the price before you pay.";
       }
       // One view field preserves the existing internet/voucher portal contract.
       voucher.addEventListener("click", function () { view.value = "voucher"; });
+      explore.addEventListener("click", function () { view.value = "explore"; });
       buy.addEventListener("click", function () { view.value = "internet"; });
       var opening = false;
       var restoreTimer;
@@ -160,6 +166,7 @@
         window.clearTimeout(restoreTimer);
         buy.disabled = !billingEnabled;
         voucher.disabled = !billingEnabled;
+        explore.disabled = !billingEnabled;
         buy.removeAttribute("aria-busy");
         buy.firstChild.textContent = "Choose an internet pass ";
         if (billingEnabled) document.getElementById("billing-state").textContent = "Choose your pass. See the price before you pay.";
@@ -169,8 +176,9 @@
         opening = true;
         buy.disabled = true;
         voucher.disabled = true;
+        explore.disabled = true;
         buy.setAttribute("aria-busy", "true");
-        buy.firstChild.textContent = view.value === "voucher" ? "Opening voucher access… " : "Opening internet passes… ";
+        buy.firstChild.textContent = view.value === "voucher" ? "Opening voucher access… " : view.value === "explore" ? "Opening Mesh… " : "Opening internet passes… ";
         document.getElementById("billing-state").textContent = "Loading your options. Stay connected to Mesh.";
         restoreTimer = window.setTimeout(function () {
           restoreButtons();

@@ -7,6 +7,9 @@ import { z } from "zod";
 import { meshAgentHeaders } from "../lib/mesh-access/security";
 import { createLiveObserver } from "./mesh-observer";
 import { performance } from "node:perf_hooks";
+import { createMeshPollWaiter, MeshPollSchedule } from "./mesh-polling";
+import { readRouterIdentity } from "./mesh-router-identity";
+import { routerStatsSchema, type RouterStats } from "../lib/mesh-access/telemetry-schema";
 import { observedHostSchema, customerIpSchema, validateAccessOrder, validateActiveResult,
   type ActiveResult, type NativeAccessOrderV2, type ObservedHost } from "../lib/mesh-access/model";
 
@@ -15,14 +18,17 @@ type DaemonConfig = {
   routerUsername: string; routerPassword: string; python: string; ledgerDirectory: string;
   joinBindHost: "10.20.0.10" | "10.254.30.1" | "127.0.0.1";
   joinTransport: "direct" | "trusted-tls-proxy";
-  mode: "active" | "standby";
+  mode: "active" | "standby" | "paused";
 };
 const cloudOrigin = "https://wifi.afribit.africa";
-const routerHost = "10.20.0.1";
-const routerFingerprint = "SHA256:oyCgA93qwim6JGTa055M/07J5wvjACh0LMnrhY7DUxQ";
 const uuid = z.string().uuid().refine(value => value === value.toLowerCase());
 const jobSchema = z.object({ id: uuid, claimToken: z.string().regex(/^[A-Za-z0-9_-]{43}$/), order: z.unknown() }).strict();
 export type AccessJob = z.infer<typeof jobSchema>;
+// An account the router must take offline before its pass slot moves on.
+const revocationSchema = z.object({ id: uuid, claimToken: z.string().regex(/^[A-Za-z0-9_-]{43}$/), user: z.string().regex(/^ma-[a-f0-9]{32}$/) }).strict();
+export type Revocation = z.infer<typeof revocationSchema>;
+export type MeshWork = { jobs: AccessJob[]; revocations: Revocation[] };
+const noWork = (): MeshWork => ({ jobs: [], revocations: [] });
 
 export function readDaemonConfig(env: Record<string, string | undefined> = process.env): DaemonConfig {
   const joinTransport = env.MESH_JOIN_TRANSPORT ?? "direct";
@@ -34,7 +40,7 @@ export function readDaemonConfig(env: Record<string, string | undefined> = proce
       !env.MIKROTIK_USERNAME || !env.MIKROTIK_PASSWORD ||
       !["direct", "trusted-tls-proxy"].includes(joinTransport) ||
       (joinTransport === "trusted-tls-proxy" ? joinBindHost !== "127.0.0.1" : !["10.20.0.10", "10.254.30.1"].includes(joinBindHost)) ||
-      (env.MESH_AGENT_MODE && !["active", "standby"].includes(env.MESH_AGENT_MODE))) throw new Error("Mesh automatic agent is not configured");
+      (env.MESH_AGENT_MODE && !["active", "standby", "paused"].includes(env.MESH_AGENT_MODE))) throw new Error("Mesh automatic agent is not configured");
   return { cloudOrigin, routerId: "KM-LAB-001", serviceKey: env.MESH_ROUTER_SERVICE_KEY,
     routerUsername: env.MIKROTIK_USERNAME, routerPassword: env.MIKROTIK_PASSWORD,
     python: env.MESH_PYTHON ?? (process.platform === "win32" ? "py" : "python3"),
@@ -65,8 +71,19 @@ export class MeshCloudClient {
     if (redirect.origin !== this.config.cloudOrigin || redirect.pathname !== "/api/mesh/join" || redirect.username || redirect.password) throw new Error("Invalid Mesh join destination");
     return result;
   }
-  async claim() {
-    return z.object({ jobs: z.array(jobSchema).max(5) }).strict().parse(await this.post("/api/mesh/gateway/jobs/claim", {})).jobs;
+  async claimWork(): Promise<MeshWork> {
+    const work = z.object({ jobs: z.array(jobSchema).max(5), revocations: z.array(revocationSchema).max(5).default([]) }).strict()
+      .parse(await this.post("/api/mesh/gateway/jobs/claim", {}));
+    for (const revocation of work.revocations) if (revocation.user !== `ma-${revocation.id.replaceAll("-", "")}`) throw new Error("Mesh revocation identity mismatch");
+    return work;
+  }
+  async claim() { return (await this.claimWork()).jobs; }
+  async revoked(revocation: Revocation) {
+    const result = await this.post(`/api/mesh/gateway/jobs/${revocation.id}/revoked`, { claimToken: revocation.claimToken, revoked: true });
+    if (!z.object({ revoked: z.literal(true) }).passthrough().safeParse(result).success) throw new Error("Mesh revocation acknowledgment unconfirmed");
+  }
+  async telemetry(stats: RouterStats) {
+    await this.post("/api/mesh/gateway/telemetry", routerStatsSchema.parse(stats));
   }
   async readiness() {
     return z.object({ paystack: z.object({ accessReady: z.boolean() }).passthrough() }).passthrough()
@@ -81,15 +98,17 @@ export class MeshCloudClient {
   }
 }
 
-export async function pollMeshCloud(client: MeshCloudClient, mode: DaemonConfig["mode"]) {
-  if (mode === "standby") { await client.readiness(); return []; }
-  return client.claim();
+export async function pollMeshCloud(client: MeshCloudClient, mode: DaemonConfig["mode"]): Promise<MeshWork> {
+  if (mode === "paused") return noWork();
+  if (mode === "standby") { await client.readiness(); return noWork(); }
+  return client.claimWork();
 }
 
 export function createPinnedRouter(config: DaemonConfig) {
+  const { host: routerHost, fingerprint: routerFingerprint } = readRouterIdentity();
   const observer = createLiveObserver(config);
   if (config.mode === "active") observer.warm();
-  const execute = async (operation: { action: "inspect"; ipAddress: string } | { action: "provision"; order: NativeAccessOrderV2 }) => {
+  const execute = async (operation: { action: "inspect"; ipAddress: string } | { action: "provision"; order: NativeAccessOrderV2 } | { action: "revoke"; user: string }) => {
     return new Promise<unknown>((accept, reject) => {
       const child = spawn(config.python, [resolve("gateway-agent/mesh-router.py")], { windowsHide: true, stdio: ["pipe", "pipe", "pipe"] });
       let output = "", settled = false;
@@ -120,6 +139,11 @@ export function createPinnedRouter(config: DaemonConfig) {
   return {
     observe: observer.observe,
     activate: async (order: NativeAccessOrderV2) => validateActiveResult(await execute({ action: "provision", order }), order),
+    revoke: async (user: string) => {
+      const result = z.object({ user: z.literal(user), revoked: z.literal(true) }).strict().parse(await execute({ action: "revoke", user }));
+      return result.revoked;
+    },
+    stats: observer.stats,
     close: observer.close,
   };
 }
@@ -211,7 +235,7 @@ export function createJoinHandler(deps: {
       const redirect = new URL(joinUrl);
       if (redirect.origin !== cloudOrigin || redirect.pathname !== "/api/mesh/join") throw new Error("Invalid Mesh join URL");
       const view = new URL(request.url ?? "/start", "http://mesh.local").searchParams.get("view");
-      if (view === "internet" || view === "voucher") redirect.searchParams.set("view", view);
+      if (view === "internet" || view === "voucher" || view === "explore") redirect.searchParams.set("view", view);
       response.writeHead(302, { Location: redirect.toString() }); response.end();
     } catch { response.writeHead(503); response.end("We could not confirm your Mesh connection. Please try again."); }
     finally { busy.delete(ip); }
@@ -220,10 +244,15 @@ export function createJoinHandler(deps: {
 
 export async function runMeshDaemon(config = readDaemonConfig()) {
   const cloud = new MeshCloudClient(config), router = createPinnedRouter(config);
+  const schedule = new MeshPollSchedule(), waiter = createMeshPollWaiter();
   let stopping = false;
-  const joinHandler = createJoinHandler({ observe: router.observe, createContext: host => cloud.createContext(host), transport: config.joinTransport });
+  const joinHandler = createJoinHandler({ observe: router.observe, createContext: async host => {
+    const context = await cloud.createContext(host);
+    schedule.activity(); waiter.wake();
+    return context;
+  }, transport: config.joinTransport });
   const server = createServer((request, response) => {
-    if (config.mode === "standby") {
+    if (config.mode !== "active") {
       response.writeHead(503, { "Cache-Control": "no-store", "Content-Type": "text/plain" });
       response.end("Mesh controller is being commissioned. Please try again later."); return;
     }
@@ -233,7 +262,7 @@ export async function runMeshDaemon(config = readDaemonConfig()) {
   try {
     await new Promise<void>((accept, reject) => { server.once("error", reject); server.listen(8040, config.joinBindHost, accept); });
   } catch (error) { router.close(); throw error; }
-  let lastCloudContact = 0;
+  let lastCloudContact = 0, lastTelemetry = 0;
   const health = createServer((request, response) => {
     response.setHeader("Cache-Control", "no-store");
     response.setHeader("Content-Type", "application/json");
@@ -249,24 +278,49 @@ export async function runMeshDaemon(config = readDaemonConfig()) {
   try {
     await new Promise<void>((accept, reject) => { health.once("error", reject); health.listen(8041, "127.0.0.1", accept); });
   } catch (error) { server.close(); router.close(); throw error; }
-  const stop = () => { stopping = true; server.close(); health.close(); router.close(); };
+  const stop = () => { stopping = true; waiter.wake(); server.close(); health.close(); router.close(); };
   process.once("SIGINT", stop); process.once("SIGTERM", stop);
   console.log(JSON.stringify({ service: "mesh-automatic-access", routerId: config.routerId, status: "running" }));
   try {
     while (!stopping) {
+      let delay: number;
       try {
-        const jobs = await pollMeshCloud(cloud, config.mode);
+        if (config.mode === "paused") {
+          await waiter.wait(schedule.success(false, config.mode));
+          continue;
+        }
+        const { jobs, revocations } = await pollMeshCloud(cloud, config.mode);
         lastCloudContact = Date.now();
+        let handoffFailed = false;
+        // Take moved or removed devices offline before any replacement is provisioned.
+        for (const revocation of revocations) {
+          if (stopping) break;
+          try {
+            await router.revoke(revocation.user);
+            await cloud.revoked(revocation);
+            console.log(JSON.stringify({ service: "mesh-automatic-access", id: revocation.id, status: "revoked" }));
+          } catch { handoffFailed = true; console.error(JSON.stringify({ service: "mesh-automatic-access", id: revocation.id, status: "revoke_unconfirmed" })); }
+        }
+        if (config.mode === "active" && Date.now() - lastTelemetry > 60_000) {
+          lastTelemetry = Date.now();
+          // Read-only health for the admin page; a failure never blocks access work.
+          try { await cloud.telemetry(await router.stats()); }
+          catch { console.error(JSON.stringify({ service: "mesh-automatic-access", status: "telemetry_unavailable" })); }
+        }
         for (const job of jobs) {
           if (stopping) break;
           try {
             const result = await processAccessJob(job, { ledgerDirectory: config.ledgerDirectory, now: Date.now,
               activate: router.activate, complete: (claimed, active) => cloud.complete(claimed, active) });
             console.log(JSON.stringify({ service: "mesh-automatic-access", ...result }));
-          } catch { console.error(JSON.stringify({ service: "mesh-automatic-access", id: job.id, status: "handoff_unconfirmed" })); }
+          } catch { handoffFailed = true; console.error(JSON.stringify({ service: "mesh-automatic-access", id: job.id, status: "handoff_unconfirmed" })); }
         }
-      } catch { console.error(JSON.stringify({ service: "mesh-automatic-access", status: "cloud_unavailable" })); }
-      await new Promise(accept => setTimeout(accept, config.mode === "standby" ? 15_000 : 2000));
+        delay = handoffFailed ? schedule.failure() : schedule.success(jobs.length + revocations.length > 0, config.mode);
+      } catch {
+        delay = schedule.failure();
+        console.error(JSON.stringify({ service: "mesh-automatic-access", status: "cloud_unavailable", retryAfterMs: delay }));
+      }
+      if (!stopping) await waiter.wait(delay);
     }
   } finally { server.close(); health.close(); router.close(); process.removeListener("SIGINT", stop); process.removeListener("SIGTERM", stop); }
 }

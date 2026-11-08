@@ -1,7 +1,9 @@
+import { connection } from "next/server";
 import { and, count, desc, eq, gt } from "drizzle-orm";
 import { Clock3, PowerOff, Wifi } from "lucide-react";
 import { extendGrantAction, manualGrantAction, revokeGrantAction } from "./actions";
 import { PageHeading } from "@/components/page-heading";
+import { AdminRouterHealth } from "@/components/admin-router-health";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +11,7 @@ import { db } from "@/lib/db";
 import { accessGrants, routerJobs } from "@/lib/db/schema";
 
 export default async function NetworkPage() {
+  await connection(); // Admin data is per request; never read the database at build time.
   const [[queued], [failed], grants, jobs] = await Promise.all([
     db.select({ value: count() }).from(routerJobs).where(eq(routerJobs.status, "queued")),
     db.select({ value: count() }).from(routerJobs).where(eq(routerJobs.status, "failed")),
@@ -17,7 +20,8 @@ export default async function NetworkPage() {
   ]);
   return (
     <>
-      <PageHeading eyebrow="Gateway" title="Network operations" description="Access controls and cloud jobs claimed by the local MikroTik gateway agent." />
+      <PageHeading eyebrow="Gateway" title="Network operations" description="Live MikroTik health, connected devices and access controls." />
+      <AdminRouterHealth />
       <form action={manualGrantAction} className="panel p-5 md:p-6">
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4"><div><label className="field-label" htmlFor="macAddress">Device MAC</label><Input id="macAddress" name="macAddress" placeholder="AA:BB:CC:DD:EE:FF" required /></div><div><label className="field-label" htmlFor="ipAddress">IP address</label><Input id="ipAddress" name="ipAddress" placeholder="192.168.88.20" /></div><div><label className="field-label" htmlFor="durationMinutes">Time (minutes)</label><Input id="durationMinutes" name="durationMinutes" type="number" min="5" defaultValue="60" required /></div><div><label className="field-label" htmlFor="speedLimitKbps">Speed cap (Kbps)</label><Input id="speedLimitKbps" name="speedLimitKbps" type="number" min="1" /></div></div>
         <div className="mt-6 flex justify-end"><Button type="submit"><Wifi size={17} /> Grant access</Button></div>

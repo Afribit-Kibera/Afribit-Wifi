@@ -48,3 +48,29 @@
 .mesh-flow .flow-success .flow-heading { margin-top:12px; }
 .flow-stay { color:#53665b; background:none; border:0; padding:10px; font-size:13px; text-decoration:underline; cursor:pointer; }
 .flow-stay:focus-visible { outline:3px solid #f7931a; outline-offset:3px; }
+
+/* My pass */
+.pass-panel { display: grid; gap: 18px; }
+.pass-card { border: 1px solid #d8dbce; border-radius: 16px; padding: 18px; background: #fbfbf6; display: grid; gap: 14px; }
+.pass-card header { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; }
+.pass-kind { display: inline-flex; align-items: center; gap: 6px; color: #335b42; font-weight: 600; }
+.pass-code { display: grid; gap: 4px; }
+.pass-code span, .pass-devices > span { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #657267; }
+.pass-code strong, .pass-big-code { font-size: 30px; letter-spacing: .08em; font-variant-numeric: tabular-nums; color: #203c32; }
+.pass-code small, .pass-add p, .pass-device-code p { color: #53665b; font-size: 13px; line-height: 1.6; margin: 0; }
+.pass-devices ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.pass-devices li { display: flex; justify-content: space-between; align-items: center; min-height: 40px; border-bottom: 1px solid #e6e8df; }
+.pass-icon-button { border: 0; background: transparent; color: #a33d32; width: 40px; height: 40px; display: grid; place-items: center; cursor: pointer; }
+.pass-add { display: grid; gap: 8px; }
+.pass-add label, .pass-device-code h2 { font-weight: 600; font-size: 15px; margin: 0; }
+.pass-add > div { display: flex; gap: 8px; }
+.pass-add input { flex: 1; min-width: 0; }
+.pass-replace { display: grid; gap: 6px; }
+
+/* Install Mesh */
+.install-benefits { list-style: none; padding: 0; margin: 18px 0 24px; display: grid; gap: 14px; }
+.install-benefits li { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; color: #53665b; line-height: 1.6; }
+.install-benefits strong { display: block; color: #203c32; }
+.install-benefits svg { flex: none; margin-top: 3px; color: #335b42; }
+.install-steps { display: grid; gap: 10px; padding-left: 0; list-style: none; font-size: 14px; }
+.install-steps li, .install-step { display: flex; align-items: center; gap: 10px; }

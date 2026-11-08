@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Check, Compass, Globe, Link2, Loader2, MapPin, MessageCircle, Radio, ShieldCheck, Ticket, X, Zap } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Check, Compass, Globe, Link2, Loader2, MapPin, MessageCircle, Radio, ShieldCheck, Ticket, Tv, Users, X, Zap } from "lucide-react";
 import { formatDuration, formatKes, formatSats } from "@/lib/utils";
 import type { PaymentMethod, PaymentProviderId } from "@/lib/payments/types";
 import { customerPaymentMethods } from "@/lib/payments/customer-methods";
@@ -17,6 +17,8 @@ type WifiPackage = {
   priceSats: number;
   durationMinutes: number;
   speedLimitKbps: number | null;
+  kind?: string;
+  deviceLimit?: number;
 };
 
 type PortalContext = {
@@ -101,6 +103,9 @@ export function PortalExperience({ packages, portalContext, services = [], blink
   const customerMethods = customerPaymentMethods(paymentMethods);
   const [paymentProvider, setPaymentProvider] = useState<PaymentProviderId>(customerMethods[0]?.id ?? "btcpay");
   const [phone, setPhone] = useState("");
+  // Paying for another device (a TV, a child's phone) by the code it shows.
+  const [forOther, setForOther] = useState(false);
+  const [otherCode, setOtherCode] = useState("");
   const paymentRequest = useRef<{ identity: string; id: string } | null>(null);
   const mpesaAvailable = paymentMethods.some(method => method.currency === "KES");
   const isMpesa = paymentProvider !== "btcpay";
@@ -150,12 +155,13 @@ export function PortalExperience({ packages, portalContext, services = [], blink
       phoneInput.current?.focus();
       return;
     }
+    if (forOther && otherCode.length !== 6) { setError("Enter the 6-digit code shown on the other device."); return; }
     setError("");
     setLoading(true);
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 15_000);
     try {
-      const details = JSON.stringify([selectedId, portalContext, paymentProvider, isMpesa ? phone.replace(/[\s()-]/g, "") : ""]);
+      const details = JSON.stringify([selectedId, portalContext, paymentProvider, isMpesa ? phone.replace(/[\s()-]/g, "") : "", forOther ? otherCode : ""]);
       const identity = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(details)))).map(byte => byte.toString(16).padStart(2, "0")).join("");
       if (paymentRequest.current?.identity !== identity) {
         let retained: { identity?: string; id?: string } | null = null;
@@ -168,7 +174,7 @@ export function PortalExperience({ packages, portalContext, services = [], blink
       const response = await fetch("/api/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageId: selectedId, ...portalContext, provider: paymentProvider, requestId: paymentRequest.current.id, ...(isMpesa ? { phone } : {}) }),
+        body: JSON.stringify({ packageId: selectedId, ...portalContext, provider: paymentProvider, requestId: paymentRequest.current.id, ...(isMpesa ? { phone } : {}), ...(forOther ? { forDeviceCode: otherCode } : {}) }),
         signal: controller.signal,
       });
       const result = await response.json();
@@ -285,7 +291,7 @@ export function PortalExperience({ packages, portalContext, services = [], blink
               </div>
             ) : (
               <div className="mesh-directory-layout mesh-internet-layout">
-                <div className="mesh-section-intro"><span className="mesh-eyebrow">Afribit · Powered by Bitcoin</span><h1>{voucherMode ? "Use your voucher." : "Get online."}</h1><p>{voucherMode ? "One code. Internet on this device." : checkoutUnavailable ? "Internet passes are temporarily unavailable." : `Choose a pass. ${mpesaAvailable ? "Pay with M-Pesa." : "Pay with Bitcoin."} Connect automatically.`}</p><div className="mesh-catalogue-actions"><button type="button" className="mesh-text-button" onClick={() => { setVoucherMode(!voucherMode); setError(""); }}><Ticket size={17} aria-hidden="true" />{voucherMode ? "Choose an internet pass" : "Have a voucher?"}<ArrowRight size={16} aria-hidden="true" /></button></div></div>
+                <div className="mesh-section-intro"><span className="mesh-eyebrow">Afribit · Powered by Bitcoin</span><h1>{voucherMode ? "Use your code." : "Get online."}</h1><p>{voucherMode ? "A voucher or a pass code. Internet on this device." : checkoutUnavailable ? "Internet passes are temporarily unavailable." : `Choose a pass. ${mpesaAvailable ? "Pay with M-Pesa." : "Pay with Bitcoin."} Connect automatically.`}</p><div className="mesh-catalogue-actions"><a className="mesh-text-button" href="/pass">My pass <ArrowRight size={16} aria-hidden="true" /></a><button type="button" className="mesh-text-button" onClick={() => { setVoucherMode(!voucherMode); setError(""); }}><Ticket size={17} aria-hidden="true" />{voucherMode ? "Choose an internet pass" : "Have a code?"}<ArrowRight size={16} aria-hidden="true" /></button></div></div>
                 <div className="mesh-directory-content">
                   {!hasDevice ? <div className="mesh-session-note"><Radio size={20} aria-hidden="true" /><p><strong>Buying for this device?</strong><span>Connect to Mesh Wi-Fi and open its sign-in page first. That lets us apply your pass to the right device.</span><a href="http://10.30.0.1/login">Reconnect to Mesh checkout <ArrowRight size={14} aria-hidden="true" /></a></p></div> : null}
                   {!voucherMode ? (
@@ -296,7 +302,7 @@ export function PortalExperience({ packages, portalContext, services = [], blink
                           <label key={item.id} className="mesh-plan" data-selected={selectedId === item.id}>
                             <input type="radio" name="mesh-pass" value={item.id} checked={selectedId === item.id} onChange={() => { setSelectedId(item.id); setError(""); }} disabled={loading} />
                             <span className="mesh-plan-radio" aria-hidden="true">{selectedId === item.id ? <Check size={13} strokeWidth={3} /> : null}</span>
-                            <span className="mesh-plan-copy"><strong>{formatDuration(item.durationMinutes)}</strong><span>{compactCheckout ? passCaption(item.durationMinutes) : item.description ?? item.name}</span>{item.speedLimitKbps ? <small>Up to {Number((item.speedLimitKbps / 1000).toFixed(1))} Mbps</small> : null}</span>
+                            <span className="mesh-plan-copy"><strong>{formatDuration(item.durationMinutes)}</strong><span>{compactCheckout ? passCaption(item.durationMinutes) : item.description ?? item.name}</span>{item.speedLimitKbps ? <small>Up to {Number((item.speedLimitKbps / 1000).toFixed(1))} Mbps</small> : null}{item.kind === "household" ? <small className="mesh-plan-devices"><Users size={13} aria-hidden="true" /> Up to {item.deviceLimit ?? 2} devices</small> : item.kind === "tv" ? <small className="mesh-plan-devices"><Tv size={13} aria-hidden="true" /> For one TV</small> : null}</span>
                             <span className="mesh-plan-price"><strong>{compactCheckout ? <><small>KES</small><span>{item.priceKes.toLocaleString("en-KE")}</span></> : formatKes(item.priceKes)}</strong>{!compactCheckout ? <span>{formatSats(item.priceSats)}</span> : null}</span>
                           </label>
                         ))}
@@ -306,6 +312,11 @@ export function PortalExperience({ packages, portalContext, services = [], blink
                         <div className="mesh-checkout-summary"><span>Your internet pass</span><strong>{selectedPackage ? `${formatDuration(selectedPackage.durationMinutes)} · ${formatKes(selectedPackage.priceKes)}` : "Choose a pass"}</strong></div>
                         {mpesaAvailable && customerMethods.length > 1 ? <fieldset className="mesh-payment-methods" disabled={loading}><legend>How would you like to pay?</legend><div>{customerMethods.map(method => <label key={method.id} data-selected={paymentProvider === method.id}><input type="radio" name="payment-method" value={method.id} checked={paymentProvider === method.id} onChange={() => { setPaymentProvider(method.id); setError(""); }} /><span>{method.label}</span></label>)}</div></fieldset> : null}
                         {isMpesa ? <div className="mesh-mpesa-phone"><div className="mesh-payment-brand"><Image src="/images/payments/mpesa.svg" alt="M-PESA" width={107} height={31} unoptimized /><span>Pay on your phone</span></div><label htmlFor="mesh-mpesa-phone">M-Pesa phone number</label><input ref={phoneInput} id="mesh-mpesa-phone" className="mesh-voucher-input" type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={event => setPhone(event.target.value)} placeholder="0712 345 678" maxLength={32} disabled={loading} aria-describedby="mesh-phone-help" /><p id="mesh-phone-help" className="mesh-checkout-note">Tap Pay, then wait for the M-Pesa prompt on this number. Approve with your PIN in that prompt. Your internet starts automatically after confirmation.</p></div> : null}
+                        <div className="mesh-for-other">
+                          <label><input type="checkbox" checked={forOther} onChange={event => { setForOther(event.target.checked); setError(""); }} disabled={loading} /> {selectedPackage?.kind === "tv" ? "Paying for a TV" : "Paying for a TV or another device"}</label>
+                          {forOther ? <><p className="mesh-checkout-note">On the TV or other device, open Mesh, go to My pass and tap “Show this device’s code”. Enter that code here. The internet goes to that device.</p>
+                            <input className="mesh-voucher-input" aria-label="Code shown on the other device" inputMode="numeric" placeholder="000000" maxLength={6} value={otherCode} onChange={event => setOtherCode(event.target.value.replace(/\D/g, "").slice(0, 6))} disabled={loading} /></> : null}
+                        </div>
                         <button type="button" className="mesh-button mesh-button-forest" onClick={startPayment} disabled={loading || !selectedPackage || !hasDevice || checkoutUnavailable || (isMpesa && (!mpesaAvailable || selectedPackage.priceKes < 10 || selectedPackage.priceKes > 10_000))}>{loading ? <Loader2 className="mesh-spin" size={18} aria-hidden="true" /> : <Zap size={18} aria-hidden="true" />}{loading ? (isMpesa ? "Requesting M-Pesa prompt…" : "Opening Lightning checkout…") : checkoutUnavailable ? "Payments temporarily unavailable" : !hasDevice ? "Reconnect to Mesh to pay" : isMpesa ? `Pay ${formatKes(selectedPackage?.priceKes ?? 0)} with M-Pesa` : "Pay with bitcoin"}<ArrowUpRight size={17} aria-hidden="true" /></button>
                         <p className="mesh-checkout-note" role={checkoutUnavailable ? "status" : undefined}>{checkoutUnavailable ? "No payment methods are available just now. No money has been requested. Please try again shortly." : isMpesa ? "Stay on Mesh while we confirm your payment and turn on your internet." : "Pay the Lightning invoice, then return here while we turn on your internet."}</p>
                       </div> : null}
@@ -313,9 +324,9 @@ export function PortalExperience({ packages, portalContext, services = [], blink
                   ) : (
                     <form className="mesh-voucher-form" onSubmit={redeemVoucher}>
                       <div className="mesh-section-rule"><span>Voucher access</span><Ticket size={16} aria-hidden="true" /></div>
-                      <h3>Your code. Your connection.</h3><p>Scratch your ticket and enter its six-digit code. Your pass applies to this device.</p>
-                      <label htmlFor="mesh-voucher">Voucher code</label><input id="mesh-voucher" className="mesh-voucher-input" value={voucherCode} onChange={(event) => setVoucherCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="000000" inputMode="numeric" pattern="[0-9]{6}" autoComplete="one-time-code" autoCapitalize="none" spellCheck={false} minLength={6} maxLength={6} required disabled={loading} />
-                      <button type="submit" className="mesh-button mesh-button-forest" disabled={loading || !hasDevice || !/^\d{6}$/.test(voucherCode)}>{loading ? <Loader2 className="mesh-spin" size={18} aria-hidden="true" /> : <Ticket size={18} aria-hidden="true" />}{loading ? "Checking your voucher…" : "Use voucher"}<ArrowRight size={17} aria-hidden="true" /></button>
+                      <h3>Your code. Your connection.</h3><p>Enter the 6-digit code from a scratch ticket, or the 10-digit pass code from a pass you already bought. It applies to this device.</p>
+                      <label htmlFor="mesh-voucher">Voucher or pass code</label><input id="mesh-voucher" className="mesh-voucher-input" value={voucherCode} onChange={(event) => setVoucherCode(event.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="000000" inputMode="numeric" pattern="[0-9]{6}|[0-9]{10}" autoComplete="one-time-code" autoCapitalize="none" spellCheck={false} minLength={6} maxLength={10} required disabled={loading} />
+                      <button type="submit" className="mesh-button mesh-button-forest" disabled={loading || !hasDevice || !/^(?:\d{6}|\d{10})$/.test(voucherCode)}>{loading ? <Loader2 className="mesh-spin" size={18} aria-hidden="true" /> : <Ticket size={18} aria-hidden="true" />}{loading ? "Checking your code…" : voucherCode.length === 10 ? "Use pass code" : "Use voucher"}<ArrowRight size={17} aria-hidden="true" /></button>
                       <button type="button" className="mesh-text-button" disabled={loading} onClick={() => { setVoucherMode(false); setError(""); }}><ArrowLeft size={16} aria-hidden="true" /> Back to internet passes</button>
                     </form>
                   )}

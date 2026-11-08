@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { and, count, desc, eq, gte, sum } from "drizzle-orm";
 import { Activity, CircleDollarSign, Router, TicketCheck } from "lucide-react";
 import { PageHeading } from "@/components/page-heading";
@@ -7,6 +8,7 @@ import { accessGrants, payments, routerJobs, vouchers } from "@/lib/db/schema";
 import { formatSats } from "@/lib/utils";
 
 export default async function AdminOverview() {
+  await connection(); // Admin data is per request; never read the database at build time.
   const dayStart = new Date();
   dayStart.setHours(0, 0, 0, 0);
   const [[revenue], [active], [voucherUses], [queued], recentPayments] = await Promise.all([

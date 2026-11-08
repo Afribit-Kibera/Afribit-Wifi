@@ -8,6 +8,7 @@ import { bitikaTransactionCodeSchema, BitikaClient, createBitikaProvider, getBit
 import { bitikaSettlementSql } from "../lib/payments/bitika-settlement";
 import { getPaystackReadiness } from "../lib/payments/paystack";
 import * as schema from "../lib/db/schema";
+import { packagePassColumnsSql } from "./helpers/pass-columns";
 
 const destination = "merchant@blink.sv";
 const hash = "ab".repeat(32);
@@ -132,6 +133,7 @@ test("HTTP integration with an isolated PostgreSQL database and mocked provider"
     CREATE TABLE access_grants (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), portal_session_id uuid REFERENCES portal_sessions, payment_id uuid REFERENCES payments, voucher_id uuid, mac_address text NOT NULL, status access_status NOT NULL DEFAULT 'pending', starts_at timestamptz NOT NULL DEFAULT now(), expires_at timestamptz NOT NULL, data_limit_mb integer, speed_limit_kbps integer, purpose text NOT NULL DEFAULT 'paid', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
     CREATE TABLE router_jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), type router_job_type NOT NULL, status router_job_status NOT NULL DEFAULT 'queued', payload jsonb NOT NULL CHECK (payload->>'routerId' <> 'reject-router'), attempts integer NOT NULL DEFAULT 0, max_attempts integer NOT NULL DEFAULT 5, available_at timestamptz NOT NULL DEFAULT now(), claimed_at timestamptz, completed_at timestamptz, last_error text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
   `);
+  await pg.exec(packagePassColumnsSql);
   const memory = drizzle(pg, { schema });
   const { db } = await import("../lib/db");
   const savedMethods = new Map<string, unknown>();

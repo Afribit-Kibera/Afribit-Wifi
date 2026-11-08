@@ -10,6 +10,7 @@ import hashlib
 import ipaddress
 import json
 import logging
+import os
 import re
 import sys
 import time
@@ -17,12 +18,18 @@ import uuid
 
 ROUTER = "KM-LAB-001"
 SERVER = "KM-MESH-001"
-SERIAL = "HH70A8H82EG"
-PIN = "SHA256:oyCgA93qwim6JGTa055M/07J5wvjACh0LMnrhY7DUxQ"
+# The enrolled gateway is pinned from the controller's private environment so a
+# replacement router can be enrolled without a code change. Values are validated
+# before use because the serial is embedded in RouterOS guard scripts.
+SERIAL = os.environ.get("MESH_ROUTER_SERIAL", "HH70A8H82EG")
+PIN = os.environ.get("MESH_ROUTER_HOST_KEY", "SHA256:oyCgA93qwim6JGTa055M/07J5wvjACh0LMnrhY7DUxQ")
+HOST = os.environ.get("MESH_ROUTER_HOST", "10.20.0.1")
+if not re.fullmatch(r"[A-Z0-9]{8,16}", SERIAL) or not re.fullmatch(r"SHA256:[A-Za-z0-9+/]{43}", PIN) or         not ipaddress.IPv4Address(HOST).is_private:
+    raise SystemExit("Mesh router identity is not configured")
 
 # The installation template uses these exact sources. Verify both watchdogs and
 # the profile before every external effect, rather than trusting their names.
-SWEEP = (' :if ([/system identity get name] != "KM-LAB-001" || [/system routerboard get serial-number] != "HH70A8H82EG") do={ :error "Unexpected AUTO router" }; '
+SWEEP = (f' :if ([/system identity get name] != "KM-LAB-001" || [/system routerboard get serial-number] != "{SERIAL}") do={{ :error "Unexpected AUTO router" }}; '
          ':global meshAutoLastEpoch; :local now ([:tonsec [:timestamp]] / 1000000000); :local unsafe false; '
          ':if ([/system ntp client get status] != "synchronized") do={ :set unsafe true }; '
          ':if ([:typeof $meshAutoLastEpoch] = "num") do={ :if ($now < $meshAutoLastEpoch) do={ :set unsafe true } }; '
@@ -35,7 +42,7 @@ SWEEP = (' :if ([/system identity get name] != "KM-LAB-001" || [/system routerbo
          ':if ($unsafe || $deadline <= $now) do={ :local account [/ip hotspot user get $u name]; '
          ':if ([/ip hotspot user get $u disabled] != true) do={ /ip hotspot user set $u disabled=yes }; '
          '/ip hotspot active remove [find where user=$account] } }')
-BOOT = (':if ([/system identity get name] != "KM-LAB-001" || [/system routerboard get serial-number] != "HH70A8H82EG") do={ :error "Unexpected AUTO router" }; '
+BOOT = (f':if ([/system identity get name] != "KM-LAB-001" || [/system routerboard get serial-number] != "{SERIAL}") do={{ :error "Unexpected AUTO router" }}; '
         ':foreach u in=[/ip hotspot user find where profile~"^KM-MESH-AUTO-[0-9]+\\$"] do={ :local account [/ip hotspot user get $u name]; '
         ':if ([/ip hotspot user get $u disabled] != true) do={ :local tag [/ip hotspot user get $u comment]; '
         '/ip hotspot user set $u disabled=yes comment=("boot:" . $tag) }; '
@@ -101,7 +108,7 @@ def validate_order(order, now):
 
 
 def identity_guard():
-    return (':if ([/system identity get name] != "KM-LAB-001" || [/system routerboard get serial-number] != "HH70A8H82EG") do={ :error "Unexpected router" }; '
+    return (f':if ([/system identity get name] != "KM-LAB-001" || [/system routerboard get serial-number] != "{SERIAL}") do={{ :error "Unexpected router" }}; '
             ':if ([:len [/ip hotspot find where name="KM-MESH-001" and interface="mesh-customer-30"]] != 1) do={ :error "HotSpot missing" }; ')
 
 
@@ -133,6 +140,80 @@ def inspect_command(ip):
     return ('{ ' + identity_guard() + f':local h [/ip hotspot host find where address={quote(ip)} and server="KM-MESH-001"]; '
             ':if ([:len $h] != 1) do={ :error "Client not present" }; '
             ':put ("MESH_HOST:" . [/ip hotspot host get $h mac-address]); }')
+
+
+def revoke_command(user):
+    # Takes one automatic account offline for good: a pass slot moved to
+    # another device or a household member was removed. Missing is success.
+    require(isinstance(user, str) and re.fullmatch(r'ma-[a-f0-9]{32}', user) is not None)
+    u = quote(user)
+    return ('{ ' + identity_guard() +
+            f':local u [/ip hotspot user find where name={u} and profile~"^KM-MESH-AUTO-[0-9]+\\$"]; '
+            ':if ([:len $u] > 1) do={ :error "Ambiguous account" }; '
+            f'/ip hotspot active remove [find where user={u}]; '
+            ':if ([:len $u] = 1) do={ /ip hotspot user remove $u }; '
+            f':if ([:len [/ip hotspot active find where user={u}]] != 0) do={{ :error "Still online" }}; '
+            ':put "MESH_AUTO_REVOKED"; }')
+
+
+# Read-only health snapshot for the admin page. Nothing here changes state.
+STATS_SESSIONS = 60
+
+
+def stats_command():
+    a = '[/ip hotspot active get $a '
+    return ('{ ' + identity_guard() +
+            ':put ("MESH_R|" . [/system resource get cpu-load] . "|" . [/system resource get free-memory] . "|" . '
+            '[/system resource get total-memory] . "|" . [/system resource get uptime] . "|" . '
+            '[/system resource get version] . "|" . [/system resource get board-name]); '
+            ':put ("MESH_H|" . [:len [/ip hotspot host find where server="KM-MESH-001"]] . "|" . '
+            '[:len [/ip hotspot active find where server="KM-MESH-001"]]); '
+            ':local n 0; :foreach a in=[/ip hotspot active find where server="KM-MESH-001"] do={ '
+            f':if ($n < {STATS_SESSIONS}) do={{ :set n ($n + 1); '
+            f':put ("MESH_A|" . {a}user] . "|" . {a}address] . "|" . {a}mac-address] . "|" . {a}uptime] . "|" . '
+            f'{a}bytes-in] . "|" . {a}bytes-out] . "|" . {a}idle-time]) }} }}; '
+            ':foreach i in=[/interface find where running and (type="ether" or type="wlan" or type="wg" or type="bridge")] do={ '
+            ':put ("MESH_I|" . [/interface get $i name] . "|" . [/interface get $i rx-byte] . "|" . [/interface get $i tx-byte]) }; '
+            ':foreach p in=[/interface wireguard peers find] do={ :put ("MESH_W|" . [/interface wireguard peers get $p last-handshake]) }; }')
+
+
+def ros_seconds(value):
+    # RouterOS durations: "1w2d03:04:05", "3h4m5s", "00:00:01.5".
+    text = str(value).strip()
+    clock = re.search(r'(\d+):(\d+):(\d+)', text)
+    total = int(clock.group(1)) * 3600 + int(clock.group(2)) * 60 + int(clock.group(3)) if clock else 0
+    rest = re.sub(r'\d+:\d+:\d+(?:\.\d+)?', '', text)
+    for amount, unit in re.findall(r'(\d+)(ms|[wdhms])', rest):
+        total += int(amount) * {'w': 604800, 'd': 86400, 'h': 3600, 'm': 60, 's': 1, 'ms': 0}[unit]
+    return total
+
+
+def parse_stats(output):
+    def num(v):
+        return int(v) if re.fullmatch(r'\d{1,15}', v or '') else 0
+
+    def safe(v, n=64):
+        return re.sub(r'[^A-Za-z0-9 ._:+()/-]', '', v or '')[:n]
+
+    result = {'resource': None, 'hotspot': {'hosts': 0, 'active': 0}, 'sessions': [], 'interfaces': [], 'wireguardHandshakeSeconds': []}
+    for line in output.splitlines():
+        part = line.strip().split('|')
+        if part[0] == 'MESH_R' and len(part) == 7:
+            result['resource'] = {'cpuLoad': min(num(part[1]), 100), 'freeMemory': num(part[2]), 'totalMemory': num(part[3]),
+                                  'uptimeSeconds': ros_seconds(part[4]), 'version': safe(part[5], 40), 'board': safe(part[6], 40)}
+        elif part[0] == 'MESH_H' and len(part) == 3:
+            result['hotspot'] = {'hosts': num(part[1]), 'active': num(part[2])}
+        elif part[0] == 'MESH_A' and len(part) == 8 and len(result['sessions']) < STATS_SESSIONS:
+            mac = part[3] if re.fullmatch(r'(?:[0-9A-F]{2}:){5}[0-9A-F]{2}', part[3]) else ''
+            ip = part[2] if re.fullmatch(r'\d{1,3}(?:\.\d{1,3}){3}', part[2]) else ''
+            result['sessions'].append({'user': safe(part[1]), 'ipAddress': ip, 'macAddress': mac, 'uptimeSeconds': ros_seconds(part[4]),
+                                       'bytesIn': num(part[5]), 'bytesOut': num(part[6]), 'idleSeconds': ros_seconds(part[7])})
+        elif part[0] == 'MESH_I' and len(part) == 4 and len(result['interfaces']) < 16:
+            result['interfaces'].append({'name': safe(part[1], 32), 'rxBytes': num(part[2]), 'txBytes': num(part[3])})
+        elif part[0] == 'MESH_W' and len(part) == 2 and len(result['wireguardHandshakeSeconds']) < 4:
+            result['wireguardHandshakeSeconds'].append(ros_seconds(part[1]) if part[1] else None)
+    require(result['resource'] is not None)
+    return result
 
 
 def provision_command(order, now):
@@ -195,8 +276,8 @@ def main():
     require(len(payload) <= 16384)
     request = json.loads(payload)
     require(isinstance(request, dict))
-    require(request.get('host') == '10.20.0.1' and request.get('fingerprint') == PIN)
-    require(request.get('action') in ('inspect', 'provision'))
+    require(request.get('host') == HOST and request.get('fingerprint') == PIN)
+    require(request.get('action') in ('inspect', 'provision', 'revoke'))
     require(isinstance(request.get('username'), str) and isinstance(request.get('password'), str))
 
     class PinnedKey(paramiko.MissingHostKeyPolicy):
@@ -212,7 +293,8 @@ def main():
         client.connect(request['host'], username=request['username'], password=request['password'],
                        look_for_keys=False, allow_agent=False, timeout=8, auth_timeout=8, banner_timeout=8)
         now = int(time.time())
-        command = inspect_command(request.get('ipAddress')) if request['action'] == 'inspect' else provision_command(request.get('order'), now)
+        command = (inspect_command(request.get('ipAddress')) if request['action'] == 'inspect' else
+                   revoke_command(request.get('user')) if request['action'] == 'revoke' else provision_command(request.get('order'), now))
         _, stdout, stderr = client.exec_command(command, timeout=25)
         output = stdout.read().decode(errors='replace')
         errors = stderr.read().decode(errors='replace')
@@ -221,6 +303,9 @@ def main():
             match = re.search(r'^MESH_HOST:((?:[0-9A-F]{2}:){5}[0-9A-F]{2})\s*$', output, re.MULTILINE)
             require(match is not None)
             result = {'macAddress': match.group(1), 'ipAddress': customer_ip(request['ipAddress']), 'server': SERVER}
+        elif request['action'] == 'revoke':
+            require(re.search(r'^MESH_AUTO_REVOKED\s*$', output, re.MULTILINE) is not None)
+            result = {'user': request['user'], 'revoked': True}
         else:
             require(re.search(r'^MESH_AUTO_ACTIVE\s*$', output, re.MULTILINE) is not None)
             order = request['order']

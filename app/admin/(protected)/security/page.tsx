@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { desc, isNull } from "drizzle-orm";
 import { KeyRound, ShieldCheck, Trash2 } from "lucide-react";
 import { PageHeading } from "@/components/page-heading";
@@ -10,6 +11,7 @@ import { adminPasskeys } from "@/lib/db/schema";
 import { revokePasskeyAction } from "./actions";
 
 export default async function SecurityPage() {
+  await connection(); // Admin data is per request; never read the database at build time.
   const session = await requireAdmin();
   const devices = await db.select().from(adminPasskeys).where(isNull(adminPasskeys.revokedAt)).orderBy(desc(adminPasskeys.createdAt));
   return (

@@ -45,7 +45,7 @@ test("Durable replay claims stop parallel HTTP context minting, survive new clie
   await pg.exec(await readFile("scripts/mesh/agent-replay-schema.sql", "utf8"));
   await pg.exec(`CREATE TABLE mesh_access_contexts(id uuid PRIMARY KEY,router_id text NOT NULL,server text NOT NULL,
     mac_address text NOT NULL,ip_address text NOT NULL,join_token_hash text NOT NULL UNIQUE,browser_token_hash text NOT NULL,
-    join_expires_at timestamptz NOT NULL,expires_at timestamptz NOT NULL,joined_at timestamptz,created_at timestamptz NOT NULL DEFAULT now())`);
+    join_expires_at timestamptz NOT NULL,expires_at timestamptz NOT NULL,joined_at timestamptz,device_key_hash text,created_at timestamptz NOT NULL DEFAULT now())`);
   const memory = drizzle(pg, { schema }), { db } = await import("../lib/db");
   const saved = new Map<string, unknown>();
   for (const key of ["insert", "execute"]) {

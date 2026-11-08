@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { asc } from "drizzle-orm";
 import { PackagePlus, Power } from "lucide-react";
 import { createPackageAction, togglePackageAction } from "./actions";
@@ -11,6 +12,7 @@ import { packages } from "@/lib/db/schema";
 import { formatDuration, formatKes, formatSats } from "@/lib/utils";
 
 export default async function PackagesPage() {
+  await connection(); // Admin data is per request; never read the database at build time.
   const records = await db.select().from(packages).orderBy(asc(packages.sortOrder));
   return (
     <>
@@ -24,6 +26,8 @@ export default async function PackagesPage() {
           <div><label className="field-label" htmlFor="sortOrder">Display order</label><Input id="sortOrder" name="sortOrder" type="number" min="0" defaultValue="50" required /></div>
           <div><label className="field-label" htmlFor="speedLimitKbps">Speed cap (Kbps)</label><Input id="speedLimitKbps" name="speedLimitKbps" type="number" min="1" /></div>
           <div><label className="field-label" htmlFor="dataLimitMb">Data cap (MB)</label><Input id="dataLimitMb" name="dataLimitMb" type="number" min="1" /></div>
+          <div><label className="field-label" htmlFor="kind">Plan type</label><select id="kind" name="kind" defaultValue="personal" className="h-10 w-full rounded-md border border-[var(--line)] bg-transparent px-3 text-sm"><option value="personal">Personal (one phone)</option><option value="household">Household (several devices)</option><option value="tv">TV (one TV)</option></select></div>
+          <div><label className="field-label" htmlFor="deviceLimit">Devices (household)</label><Input id="deviceLimit" name="deviceLimit" type="number" min="1" max="10" defaultValue="1" /></div>
           <div className="md:col-span-2"><label className="field-label" htmlFor="description">Description</label><Textarea id="description" name="description" className="min-h-10" /></div>
         </div>
         <div className="mt-6 flex justify-end"><Button type="submit"><PackagePlus size={17} /> Add package</Button></div>
@@ -37,7 +41,7 @@ export default async function PackagesPage() {
             <tbody>
               {records.map((item) => (
                 <tr key={item.id}>
-                  <td><strong>{item.name}</strong><span className="mt-1 block max-w-sm text-xs text-[var(--muted)]">{item.description}</span></td>
+                  <td><strong>{item.name}</strong>{item.kind !== "personal" ? <span className="ml-2"><Badge tone="neutral">{item.kind === "tv" ? "TV" : `Household · ${item.deviceLimit} devices`}</Badge></span> : null}<span className="mt-1 block max-w-sm text-xs text-[var(--muted)]">{item.description}</span></td>
                   <td><strong>{formatKes(item.priceKes)}</strong><span className="mt-1 block text-xs text-[var(--muted)]">{formatSats(item.priceSats)}</span></td>
                   <td>{formatDuration(item.durationMinutes)}</td>
                   <td className="text-[var(--muted)]">{item.speedLimitKbps ? `${item.speedLimitKbps / 1000} Mbps` : "No speed cap"}{item.dataLimitMb ? ` - ${item.dataLimitMb} MB` : ""}</td>

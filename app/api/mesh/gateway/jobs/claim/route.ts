@@ -4,6 +4,7 @@ import { payments } from "@/lib/db/schema";
 import { readAgentBody, privateHeaders } from "@/lib/mesh-access/agent-api";
 import { claimMeshOrders, recordMeshAgentHeartbeat } from "@/lib/mesh-access/service";
 import { readMeshAccessConfig } from "@/lib/mesh-access/config";
+import { claimMeshRevocations, ensurePasses } from "@/lib/mesh-access/passes";
 import { reconcilePaystackCollection } from "@/lib/payments/reconcile-paystack";
 import { bitikaMissingReferenceRecoveryCandidate, reconcileBitikaPayment } from "@/lib/payments/reconcile-bitika";
 export const runtime = "nodejs";
@@ -24,5 +25,9 @@ export async function POST(request: Request) {
       else await reconcilePaystackCollection(payment);
     } catch { /* Preserve the reference and retry; never grant on uncertainty. */ }
   }
-  return Response.json({ jobs: await claimMeshOrders() }, { headers: privateHeaders });
+  // Every paid or voucher order becomes a pass the device can recover with.
+  try { await ensurePasses(); } catch (error) { console.error("Pass creation deferred", error instanceof Error ? error.message : "unknown"); }
+  // Revocations go first: a moved slot is handed out only after the old device is off.
+  const revocations = await claimMeshRevocations();
+  return Response.json({ revocations, jobs: await claimMeshOrders() }, { headers: privateHeaders });
 }

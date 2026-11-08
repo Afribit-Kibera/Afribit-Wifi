@@ -10,6 +10,7 @@ import { consumeVoucherAttempt } from "@/lib/voucher-rate-limit";
 import { meshAutomaticAccessEnabled, meshAutomaticAccessReady } from "@/lib/mesh-access/config";
 import { getTrustedMeshContext, queueMeshVoucherAccess } from "@/lib/mesh-access/service";
 import { readBoundedJson, RequestBodyError } from "@/lib/request-body";
+import { deviceKeyHash, PassError, readDeviceKey, redeemPassCode } from "@/lib/mesh-access/passes";
 
 const redeemSchema = z.object({
   code: z.string().min(6).max(64),
@@ -41,6 +42,17 @@ export async function POST(request: Request) {
   if (!attempt.allowed) return Response.json({ error: "Too many attempts. Please try again later." }, {
     status: 429, headers: { "Retry-After": String(attempt.retryAfter) },
   });
+  // One code box: a 10-digit pass code brings this device onto an existing pass.
+  if (context && /^\d{10}$/.test(parsed.data.code.replace(/[\s-]/g, ""))) {
+    try {
+      const key = readDeviceKey(request);
+      const result = await redeemPassCode(context, { code: parsed.data.code, keyHash: key ? deviceKeyHash(key) : null });
+      return Response.json({ accessGrantId: result.grantId, pass: true }, { status: 200, headers: { "Cache-Control": "no-store" } });
+    } catch (error) {
+      if (error instanceof PassError) return Response.json({ error: error.message, ...(error.devices ? { devices: error.devices } : {}) }, { status: error.status });
+      return Response.json({ error: "Mesh is busy. Please try again." }, { status: 503 });
+    }
+  }
 
   let record;
   try {

@@ -92,7 +92,7 @@ test("A standby controller makes signed read-only checks and never claims jobs o
     assert.equal(verifyMeshAgent(new Request(String(url), init), String(init?.body), config), true);
     return Response.json({ paystack: { accessReady: true } });
   });
-  assert.deepEqual(await pollMeshCloud(client, "standby"), []);
+  assert.deepEqual(await pollMeshCloud(client, "standby"), { jobs: [], revocations: [] });
   assert.deepEqual(targets, ["/api/mesh/gateway/readiness"]);
 });
 

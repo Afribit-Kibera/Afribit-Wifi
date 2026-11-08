@@ -21,7 +21,7 @@ def main():
     raw = sys.stdin.buffer.readline(16385)
     native.require(len(raw) <= 16384)
     config = json.loads(raw)
-    native.require(config.get('host') == '10.20.0.1' and config.get('fingerprint') == native.PIN)
+    native.require(config.get('host') == native.HOST and config.get('fingerprint') == native.PIN)
     native.require(isinstance(config.get('username'), str) and isinstance(config.get('password'), str))
 
     class Pinned(paramiko.MissingHostKeyPolicy):
@@ -50,13 +50,17 @@ def main():
             message = json.loads(raw)
             identifier = native.valid_uuid(message.get('id'))
             try:
-                ip = native.customer_ip(message.get('ipAddress'))
+                stats = message.get('action') == 'stats'
+                ip = None if stats else native.customer_ip(message.get('ipAddress'))
                 if not client.get_transport() or not client.get_transport().is_active():
                     client.close()
                     client = connect()
-                _, out, err = client.exec_command(native.inspect_command(ip), timeout=15)
+                _, out, err = client.exec_command(native.stats_command() if stats else native.inspect_command(ip), timeout=15)
                 output, errors = out.read().decode(errors='replace'), err.read()
                 native.require(out.channel.recv_exit_status() == 0 and not errors)
+                if stats:
+                    print(json.dumps({'id': identifier, 'stats': native.parse_stats(output)}), flush=True)
+                    continue
                 match = re.search(r'^MESH_HOST:((?:[0-9A-F]{2}:){5}[0-9A-F]{2})\s*$', output, re.MULTILINE)
                 native.require(match is not None)
                 print(json.dumps({'id': identifier, 'host': {'macAddress': match.group(1), 'ipAddress': ip, 'server': native.SERVER}}), flush=True)

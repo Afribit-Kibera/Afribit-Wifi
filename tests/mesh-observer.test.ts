@@ -34,6 +34,25 @@ test("Observer reuses transport but reads a fresh host every time and rejects ma
   } finally {observer.close();}
 });
 
+test("A warmed observer reconnects in the background after the transport drops", async () => {
+  let workers=0;
+  const observer=createLiveObserver({python:"unused",routerUsername:"fixture",routerPassword:"fixture"},()=>{
+    workers++;return spawn(process.execPath,["-e",fixture],{stdio:["pipe","pipe","pipe"]});
+  },{rewarmMs:50});
+  try {
+    observer.warm();
+    await observer.observe("10.30.0.194");
+    await assert.rejects(observer.observe("10.30.0.198"),/unavailable/); // worker exits, like a dropped SSH session
+    const deadline=Date.now()+3_000;
+    while (workers<2 && Date.now()<deadline) await new Promise(r=>setTimeout(r,20));
+    assert.equal(workers,2,"The transport is re-opened before the next customer arrives");
+    const started=Date.now(), host=await observer.observe("10.30.0.194");
+    assert.equal(host.ipAddress,"10.30.0.194");
+    assert.equal(workers,2);
+    assert.ok(Date.now()-started<1_000);
+  } finally {observer.close();}
+});
+
 test("Observer refuses a valid-looking response that belongs to another socket peer", async () => {
   const observer=createLiveObserver({python:"unused",routerUsername:"fixture",routerPassword:"fixture"},()=>
     spawn(process.execPath,["-e",fixture.replace('ipAddress:value.ipAddress','ipAddress:"10.30.0.199"')],{stdio:["pipe","pipe","pipe"]}));

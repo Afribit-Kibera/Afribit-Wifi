@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { asc } from "drizzle-orm";
 import { Globe2, Power, ShieldCheck } from "lucide-react";
 import { addWhitelistSiteAction, toggleWhitelistSiteAction } from "./actions";
@@ -10,6 +11,7 @@ import { db } from "@/lib/db";
 import { whitelistedSites } from "@/lib/db/schema";
 
 export default async function WhitelistPage() {
+  await connection(); // Admin data is per request; never read the database at build time.
   const sites = await db.select().from(whitelistedSites).orderBy(asc(whitelistedSites.category), asc(whitelistedSites.hostname));
   return (
     <>

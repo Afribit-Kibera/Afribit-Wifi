@@ -15,6 +15,15 @@ export function MeshOnlineSuccess({ expiresAt }: { expiresAt?: string | null }) 
   const userAgent = useSyncExternalStore(subscribeToUserAgent, userAgentSnapshot, serverUserAgentSnapshot);
   const handoff = internetHandoff(userAgent);
   const [stayHere, setStayHere] = useState(false);
+  const [passCode, setPassCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    // The code that restores this pass after a phone change or lost connection.
+    let cancelled = false;
+    fetch("/api/mesh/pass", { cache: "no-store" }).then(response => response.ok ? response.json() : null)
+      .then(body => { if (!cancelled && typeof body?.passes?.[0]?.code === "string") setPassCode(body.passes[0].code); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!handoff.automatic || stayHere) return;
@@ -30,6 +39,7 @@ export function MeshOnlineSuccess({ expiresAt }: { expiresAt?: string | null }) 
     <p className="flow-success-eyebrow">Internet is ready</p>
     <h1 id="mesh-online-heading" className="flow-heading">You’re online.</h1>
     <p className="flow-copy">Your pass is active on this device. Stay connected to Mesh and open your favourite apps.</p>
+    {passCode ? <div className="pass-code"><span>Your pass code</span><strong>{passCode}</strong><small>Write it down. Use it to reconnect, change phones or add household devices. You can see it again in <a href="/pass">My pass</a>, or <a href="/app">add Mesh to your home screen</a>.</small></div> : null}
     <a className="flow-action" href={handoff.url}>Start browsing <ArrowUpRight size={17} aria-hidden="true" /></a>
     {handoff.automatic && !stayHere ? <><p className="flow-note">We’re finishing the Wi-Fi sign-in. This window may close in a moment.</p><button className="flow-stay" type="button" onClick={() => setStayHere(true)}>Stay on this page</button></> : <p className="flow-note">If the Wi-Fi window stays open, tap Done or close it, then open your browser. You don’t need to reconnect or pay again.</p>}
   </section>;

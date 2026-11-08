@@ -17,7 +17,7 @@ export default async function PaymentPage({ params }: { params: Promise<{ id: st
   if (payment.metadata.meshContextId) {
     const request = new Request(`https://wifi.afribit.africa/pay/${id}`, { headers: await headers() });
     const context = await getTrustedMeshContext(request);
-    if (!context || context.id !== payment.metadata.meshContextId) notFound();
+    if (!context || (context.id !== payment.metadata.meshContextId && context.id !== payment.metadata.payerContextId)) notFound();
     nativeAccess = (await getMeshAccessStatus(request, { paymentId: id })) ?? { status: "pending" as const, expiresAt: null };
   }
   const details = payment.metadata[payment.provider] as { status?: string; resolutionRequired?: boolean; collectionConfirmed?: boolean; bitcoinSettlement?: string } | undefined;

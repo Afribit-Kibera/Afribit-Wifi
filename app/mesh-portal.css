@@ -391,3 +391,9 @@ html:has(.mesh-catalogue), body:has(.mesh-catalogue) { background:#fffaf2; }
   .mesh-checkout-dock .mesh-button { min-width:112px; padding-left:14px; padding-right:14px; }
   .mesh-checkout-dock strong { font-size:12px; }
 }
+
+/* Device passes */
+.mesh-plan-devices { display: inline-flex; align-items: center; gap: 4px; }
+.mesh-for-other { display: grid; gap: 8px; margin: 4px 0 14px; font-size: 14px; }
+.mesh-for-other label { display: flex; align-items: center; gap: 8px; min-height: 40px; }
+.mesh-for-other input[type="checkbox"] { width: 18px; height: 18px; }

@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { eq } from "drizzle-orm";
 import { Download } from "lucide-react";
 import { notFound } from "next/navigation";
@@ -9,6 +10,7 @@ import { voucherBatches, vouchers } from "@/lib/db/schema";
 import { formatDuration, formatSats } from "@/lib/utils";
 
 export default async function VoucherBatchPage({ params }: { params: Promise<{ id: string }> }) {
+  await connection(); // Admin data is per request; never read the database at build time.
   const { id } = await params;
   const [batch] = await db.select().from(voucherBatches).where(eq(voucherBatches.id, id)).limit(1);
   if (!batch) notFound();

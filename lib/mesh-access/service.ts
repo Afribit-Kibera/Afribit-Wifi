@@ -182,8 +182,13 @@ export async function getMeshAccessStatus(request: Request, input: { paymentId?:
   const context = await getTrustedMeshContext(request);
   const id = input.paymentId ?? input.grantId;
   if (!context || !id || !uuid.test(id)) return null;
-  const [order] = await db.select().from(meshAccessOrders).where(and(eq(meshAccessOrders.contextId, context.id),
-    input.paymentId ? eq(meshAccessOrders.paymentId, input.paymentId) : eq(meshAccessOrders.grantId, input.grantId!))).limit(1);
+  // The buyer may watch a payment made for another device (a TV or a child's
+  // phone); otherwise only the device that holds the order sees it.
+  const [order] = await db.select().from(meshAccessOrders).where(and(
+    input.paymentId ? sql`${meshAccessOrders.contextId}=${context.id}::uuid OR EXISTS(SELECT 1 FROM payments p WHERE p.id=${meshAccessOrders.paymentId}
+      AND p.metadata->>'payerContextId'=${context.id})` : eq(meshAccessOrders.contextId, context.id),
+    input.paymentId ? eq(meshAccessOrders.paymentId, input.paymentId) : eq(meshAccessOrders.grantId, input.grantId!)))
+    .orderBy(sql`${meshAccessOrders.createdAt} DESC`).limit(1);
   if (!order) return null;
   return { status: order.expiresAt.getTime() <= Date.now() ? "expired" : order.status === "active" && order.updatedAt.getTime() > Date.now()-90_000 ? "active" :
     ["failed", "revoked"].includes(order.status) ? "failed" : "pending", expiresAt: order.expiresAt.toISOString() };
@@ -193,9 +198,11 @@ export async function claimMeshOrders() {
   const config = readMeshAccessConfig(), token = freshToken();
   const rows = await db.execute(sql`
     UPDATE mesh_access_orders SET status=CASE WHEN status='active' THEN 'active' ELSE 'claimed' END,claim_token_hash=${hashToken(token)},claimed_at=now(),updated_at=now()
-    WHERE id IN (SELECT id FROM mesh_access_orders WHERE router_id=${config.routerId} AND expires_at > now()
-      AND (status='queued' OR (status='claimed' AND claimed_at < now()-interval '60 seconds') OR (status='active' AND claimed_at < now()-interval '30 seconds'))
-      ORDER BY created_at LIMIT 5 FOR UPDATE SKIP LOCKED)
+    WHERE id IN (SELECT o.id FROM mesh_access_orders o WHERE o.router_id=${config.routerId} AND o.expires_at > now()
+      AND (o.status='queued' OR (o.status='claimed' AND o.claimed_at < now()-interval '60 seconds') OR (o.status='active' AND o.claimed_at < now()-interval '30 seconds'))
+      -- A pass slot is released to its new device only after the router confirms the old one is off.
+      AND (o.pass_device_id IS NULL OR NOT EXISTS(SELECT 1 FROM mesh_access_orders r WHERE r.pass_device_id=o.pass_device_id AND r.status='revoking'))
+      ORDER BY o.created_at LIMIT 5 FOR UPDATE SKIP LOCKED)
     RETURNING id,encrypted_order
   `);
   return rows.rows.map(row => ({ id: String(row.id), claimToken: token, order: decryptAccess<MeshAutomaticOrder>(String(row.encrypted_order), config) }));

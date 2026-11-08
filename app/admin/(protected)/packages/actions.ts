@@ -16,6 +16,8 @@ const packageSchema = z.object({
   dataLimitMb: z.union([z.coerce.number().int().positive(), z.literal("")]).optional(),
   speedLimitKbps: z.union([z.coerce.number().int().positive(), z.literal("")]).optional(),
   sortOrder: z.coerce.number().int().min(0).max(1000),
+  kind: z.enum(["personal", "household", "tv"]).default("personal"),
+  deviceLimit: z.coerce.number().int().min(1).max(10).default(1),
 });
 
 export async function createPackageAction(formData: FormData) {
@@ -25,6 +27,8 @@ export async function createPackageAction(formData: FormData) {
     ...input,
     dataLimitMb: input.dataLimitMb === "" ? null : input.dataLimitMb,
     speedLimitKbps: input.speedLimitKbps === "" ? null : input.speedLimitKbps,
+    // A household pass shares one deadline across several devices; personal and TV passes cover one.
+    deviceLimit: input.kind === "household" ? Math.max(2, input.deviceLimit) : 1,
   }).returning();
   await db.insert(auditLogs).values({ actor: admin.actor, action: "package.created", entityType: "package", entityId: created.id, details: { name: created.name } });
   revalidatePath("/admin/packages");

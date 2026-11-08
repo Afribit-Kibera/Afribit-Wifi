@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import Link from "next/link";
 import { count, desc, eq } from "drizzle-orm";
 import { Download } from "lucide-react";
@@ -10,6 +11,7 @@ import { packages, voucherBatches, vouchers } from "@/lib/db/schema";
 import { formatDuration, formatSats } from "@/lib/utils";
 
 export default async function VouchersPage() {
+  await connection(); // Admin data is per request; never read the database at build time.
   const [wifiPackages, batches] = await Promise.all([
     db.select({ id: packages.id, name: packages.name, priceSats: packages.priceSats, durationMinutes: packages.durationMinutes }).from(packages).where(eq(packages.active, true)),
     db.select({ batch: voucherBatches, issued: count(vouchers.id) }).from(voucherBatches).leftJoin(vouchers, eq(vouchers.batchId, voucherBatches.id)).groupBy(voucherBatches.id).orderBy(desc(voucherBatches.createdAt)),

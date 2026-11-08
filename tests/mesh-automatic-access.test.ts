@@ -10,6 +10,7 @@ import { readMeshAccessConfig } from "../lib/mesh-access/config";
 import { decryptAccess, encryptAccess, meshAgentHeaders, verifyMeshAgent } from "../lib/mesh-access/security";
 import type { EngineSettlement } from "../lib/payments/insats-engine";
 import { hashLegacyVoucherCode, hashVoucherCode } from "../lib/voucher-crypto";
+import { packagePassColumnsSql, passColumnsSql } from "./helpers/pass-columns";
 
 test("Automatic access: isolated PostgreSQL, router-bound vouchers and browser ownership", async t => {
   const originalEnv = { ...process.env };
@@ -28,6 +29,7 @@ test("Automatic access: isolated PostgreSQL, router-bound vouchers and browser o
     CREATE TABLE mesh_access_contexts(id uuid PRIMARY KEY,router_id text NOT NULL,server text NOT NULL,mac_address text NOT NULL,ip_address text NOT NULL,join_token_hash text NOT NULL UNIQUE,browser_token_hash text NOT NULL,join_expires_at timestamptz NOT NULL,expires_at timestamptz NOT NULL,joined_at timestamptz,created_at timestamptz NOT NULL DEFAULT now());
     CREATE TABLE mesh_access_orders(id uuid PRIMARY KEY,context_id uuid NOT NULL REFERENCES mesh_access_contexts,router_id text NOT NULL,payment_id uuid UNIQUE REFERENCES payments,voucher_id uuid REFERENCES vouchers,grant_id uuid NOT NULL REFERENCES access_grants,status text NOT NULL DEFAULT 'queued',encrypted_order text NOT NULL,claim_token_hash text,claimed_at timestamptz,expires_at timestamptz NOT NULL,last_error text,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),UNIQUE(voucher_id,context_id));
   `);
+  await pg.exec(passColumnsSql);
   const memory = drizzle(pg, { schema });
   await pg.exec(await readFile("scripts/mesh/agent-replay-schema.sql", "utf8"));
   const { db } = await import("../lib/db");
@@ -260,6 +262,7 @@ test("Automatic access: isolated PostgreSQL, router-bound vouchers and browser o
     await t.test("New checkout UUIDs and browser MAC fields cannot evade the prompt throttle", async () => {
       await pg.exec(`CREATE TABLE packages(id uuid PRIMARY KEY,name text NOT NULL,description text,price_kes integer NOT NULL,price_sats integer NOT NULL,duration_minutes integer NOT NULL,data_limit_mb integer,speed_limit_kbps integer,active boolean NOT NULL DEFAULT true,sort_order integer NOT NULL DEFAULT 0,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
         CREATE TABLE voucher_redemption_limits(scope_key text PRIMARY KEY,window_started_at timestamptz NOT NULL,attempts integer NOT NULL);`);
+      await pg.exec(packagePassColumnsSql);
       const packageId = randomUUID();
       await memory.insert(schema.packages).values({ id: packageId, name: "Fixture", priceKes: 10, priceSats: 85, durationMinutes: 80, speedLimitKbps: 3000 });
       Object.assign(process.env, { PAYSTACK_MODE: "live", PAYSTACK_SECRET_KEY: "sk_live_fixture", PAYSTACK_ENABLED: "true",
