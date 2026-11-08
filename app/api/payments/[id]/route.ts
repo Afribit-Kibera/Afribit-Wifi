@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { payments } from "@/lib/db/schema";
 import { reconcileBitikaPayment } from "@/lib/payments/reconcile-bitika";
 import { reconcilePaystackCollection } from "@/lib/payments/reconcile-paystack";
+import { reconcileLightningPayment } from "@/lib/payments/lightning";
 import { getMeshAccessStatus, getTrustedMeshContext } from "@/lib/mesh-access/service";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -17,6 +18,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   let reconciliationUnavailable = false;
   if (payment.provider === "bitika") {
     try { await reconcileBitikaPayment(payment); } catch { reconciliationUnavailable = true; }
+    [payment] = await db.select().from(payments).where(eq(payments.id, id)).limit(1);
+  }
+  if (payment.provider === "lightning") {
+    try { await reconcileLightningPayment(payment); } catch { reconciliationUnavailable = true; }
     [payment] = await db.select().from(payments).where(eq(payments.id, id)).limit(1);
   }
   if (payment.provider === "paystack") {

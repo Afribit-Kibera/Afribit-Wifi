@@ -7,9 +7,10 @@ import Link from "next/link";
 import type { MeshNativeStatus } from "@/lib/mesh-access/status-types";
 import { customerPaymentState } from "@/lib/payments/customer-progress";
 import { MeshOnlineSuccess } from "@/components/mesh-online-success";
+import { LightningInvoice, type LightningInvoiceView } from "@/components/lightning-invoice";
 
-export function PaymentStatus({ paymentId, initialStatus, checkoutUrl, provider = "btcpay", initialResolutionRequired = false, initialNativeAccess = null, initialProviderStatus, initialCollectionConfirmed = false, initialSettlementStatus }: {
-  paymentId: string; initialStatus: string; checkoutUrl: string | null; provider?: string;
+export function PaymentStatus({ paymentId, initialStatus, checkoutUrl, provider = "btcpay", initialResolutionRequired = false, initialNativeAccess = null, initialProviderStatus, initialCollectionConfirmed = false, initialSettlementStatus, lightning = null }: {
+  paymentId: string; initialStatus: string; checkoutUrl: string | null; provider?: string; lightning?: LightningInvoiceView | null;
   initialResolutionRequired?: boolean; initialNativeAccess?: MeshNativeStatus | null;
   initialProviderStatus?: string; initialCollectionConfirmed?: boolean; initialSettlementStatus?: string;
 }) {
@@ -64,9 +65,16 @@ export function PaymentStatus({ paymentId, initialStatus, checkoutUrl, provider 
   }, [paymentId, status, nativeAccess?.status]);
 
   if (state === "active") return <MeshOnlineSuccess expiresAt={nativeAccess?.expiresAt} />;
+  if (provider === "lightning" && status === "expired" && !nativeAccess?.expiresAt) return <div><h1 className="flow-heading">This invoice expired.</h1><p className="flow-copy">No money was taken. Choose your pass again to get a new invoice.</p><Link className="flow-action" href="/?view=internet">Choose an internet pass</Link></div>;
+  if (provider === "lightning" && state === "failed") return <div><XCircle className="flow-status-symbol is-error" size={44} /><h1 className="flow-heading">This invoice was closed.</h1><p className="flow-copy">If you paid it, don’t pay again. Keep this reference and ask Afribit for help.</p><p className="flow-note">Payment reference: {paymentId}</p><Link className="flow-action secondary" href="/?view=internet">Back to internet passes</Link></div>;
   if (state === "expired") return <div><h1 className="flow-heading">Your pass has ended.</h1><p className="flow-copy">Choose another pass when you’re ready to get back online.</p><Link className="flow-action" href="/?view=internet">Choose an internet pass</Link></div>;
   if (state === "failed") return <div><XCircle className="flow-status-symbol is-error" size={44} /><h1 className="flow-heading">Payment wasn’t completed.</h1><p className="flow-copy">If money left your M-Pesa account, don’t pay again. Keep this reference and ask Afribit for help.</p><p className="flow-note">Payment reference: {paymentId}</p><Link className="flow-action secondary" href="/?view=internet">Back to internet passes</Link></div>;
   if (state === "review") return <div><Smartphone className="flow-status-symbol" size={40} /><h1 className="flow-heading">We’re checking your purchase.</h1><p className="flow-copy">{collectionConfirmed || status === "settled" ? "Your payment was received. " : ""}Your pass is taking longer than expected. Don’t pay again. Keep this page open; if it stays here, share the reference below with Afribit.</p><p className="flow-note">Payment reference: {paymentId}</p>{pollError ? <p className="flow-inline-status" role="status">We’ll check again when the connection returns.</p> : null}</div>;
+  if (provider === "lightning") {
+    const paid = state === "connecting" || providerStatus === "paid";
+    if (paid || !lightning) return <div><Loader2 className="flow-status-symbol flow-loading" size={40} /><h1 className="flow-heading">{paid ? "Payment received. Turning on your internet." : "Checking your Bitcoin payment."}</h1><p className="flow-copy">Stay connected to Mesh. Your internet switches on automatically. Don’t pay again.</p><details className="flow-reference"><summary>Payment reference</summary><p>{paymentId}</p></details></div>;
+    return <LightningInvoice invoice={lightning} pollError={pollError} />;
+  }
   if (provider === "paystack" || provider === "bitika") {
     const connecting = state === "connecting", confirming = state === "confirming";
     const step = connecting ? 2 : confirming ? 1 : 0;

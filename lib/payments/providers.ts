@@ -3,6 +3,8 @@ import { createBitikaProvider, getBitikaReadiness } from "./bitika";
 import { createPaystackProvider, getPaystackReadiness } from "./paystack";
 import { PaymentProviderError, type PaymentMethod, type PaymentProvider, type PaymentProviderId } from "./types";
 import { meshAutomaticAccessEnabled } from "../mesh-access/config";
+import { createLightningProvider, lightningReady } from "./lightning";
+import type { PaymentSettings } from "../settings";
 
 const btcpay: PaymentProvider = {
   id: "btcpay",
@@ -23,6 +25,11 @@ export function getPaymentProvider(id: PaymentProviderId): PaymentProvider {
     if (meshAutomaticAccessEnabled()) throw new PaymentProviderError("Direct Lightning checkout is being prepared. Choose M-Pesa or use a voucher.");
     return btcpay;
   }
+  if (id === "lightning") {
+    // Lightning access is bound to the router-attested Mesh device.
+    if (!meshAutomaticAccessEnabled() || !lightningReady()) throw new PaymentProviderError("Bitcoin payments are not available yet. Choose M-Pesa or use a voucher.");
+    return createLightningProvider();
+  }
   if (id === "paystack") {
     if (!getPaystackReadiness().checkoutReady) throw new PaymentProviderError("M-Pesa checkout is not available yet");
     return createPaystackProvider();
@@ -31,10 +38,12 @@ export function getPaymentProvider(id: PaymentProviderId): PaymentProvider {
   return createBitikaProvider();
 }
 
-export function getPaymentMethods(): PaymentMethod[] {
+export function getPaymentMethods(settings?: PaymentSettings): PaymentMethod[] {
+  const lightning = Boolean(settings?.bitcoinEnabled && meshAutomaticAccessEnabled() && lightningReady());
   const mpesa: PaymentProviderId | null = getBitikaReadiness().checkoutReady ? "bitika" : getPaystackReadiness().checkoutReady ? "paystack" : null;
   return [
     ...(!meshAutomaticAccessEnabled() ? [{ id: "btcpay" as const, label: "Bitcoin · Lightning", currency: "BTC" as const }] : []),
     ...(mpesa ? [{ id: mpesa, label: "M-Pesa", currency: "KES" as const }] : []),
+    ...(lightning ? [{ id: "lightning" as const, label: "Bitcoin", currency: "BTC" as const, discountPercent: settings!.bitcoinDiscountPercent }] : []),
   ];
 }

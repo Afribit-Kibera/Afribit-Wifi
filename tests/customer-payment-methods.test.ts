@@ -23,3 +23,14 @@ test("unavailable methods stay unavailable and Bitcoin remains an option", () =>
   assert.deepEqual(customerPaymentMethods([{ id: "btcpay", label: "BTC", currency: "BTC" }]),
     [{ id: "btcpay", label: "Bitcoin · Lightning", currency: "BTC" }]);
 });
+
+test("direct Lightning is the Bitcoin option and keeps its discount", () => {
+  assert.deepEqual(customerPaymentMethods([
+    { id: "btcpay", label: "BTC", currency: "BTC" },
+    { id: "bitika", label: "Bitika", currency: "KES" },
+    { id: "lightning", label: "Bitcoin", currency: "BTC", discountPercent: 5 },
+  ]), [
+    { id: "bitika", label: "M-Pesa", currency: "KES" },
+    { id: "lightning", label: "Bitcoin · Lightning", currency: "BTC", discountPercent: 5 },
+  ]);
+});

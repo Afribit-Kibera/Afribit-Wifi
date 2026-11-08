@@ -16,6 +16,7 @@ import { readBoundedJson, RequestBodyError } from "@/lib/request-body";
 import { consumeCheckoutAttempt } from "@/lib/payments/checkout-rate-limit";
 import { reserveMeshCheckout } from "@/lib/mesh-access/checkout-reservation";
 import { deviceKeyHash, packageDeviceRules, PassError, readDeviceKey, resolveDeviceCode } from "@/lib/mesh-access/passes";
+import { bitcoinPriceKes, readPaymentSettings } from "@/lib/settings";
 
 const paymentSchema = z.object({
   packageId: z.string().uuid(),
@@ -72,8 +73,8 @@ export async function POST(request: Request) {
   try {
     provider = getPaymentProvider(input.provider);
     if (input.provider !== "btcpay") {
-      if (!input.routerId || !input.ipAddress || !/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(input.macAddress)) throw new PaymentProviderError("Join Mesh Wi-Fi before buying an internet pass", 400);
-      phone = normalizeKenyanPhone(input.phone ?? "");
+      if ((input.provider === "lightning" && !context) || !input.routerId || !input.ipAddress || !/^([0-9A-F]{2}:){5}[0-9A-F]{2}$/i.test(input.macAddress)) throw new PaymentProviderError("Join Mesh Wi-Fi before buying an internet pass", 400);
+      if (input.provider !== "lightning") phone = normalizeKenyanPhone(input.phone ?? "");
     }
   } catch (error) {
     return Response.json({ error: error instanceof PaymentProviderError ? error.message : "Payment method unavailable" }, { status: error instanceof PaymentProviderError ? error.httpStatus : 503 });
@@ -85,6 +86,11 @@ export async function POST(request: Request) {
     .where(eq(packages.id, parsed.data.packageId))
     .limit(1);
   if (!wifiPackage || !wifiPackage.active) return Response.json({ error: "This package is unavailable" }, { status: 404 });
+  // Bitcoin buyers pay the KES price less the admin-set discount, in sats at the live rate.
+  const settings = input.provider === "lightning" ? await readPaymentSettings() : null;
+  if (settings && !settings.bitcoinEnabled) return Response.json({ error: "Bitcoin payments are switched off just now. Choose M-Pesa or use a voucher." }, { status: 503 });
+  const bitcoinPrice = settings && wifiPackage.priceKes > 0 ? { ...bitcoinPriceKes(wifiPackage.priceKes, settings.bitcoinDiscountPercent), discountPercent: settings.bitcoinDiscountPercent, priceKes: wifiPackage.priceKes } : null;
+  if (settings && !bitcoinPrice) return Response.json({ error: "This pass cannot be paid with Bitcoin" }, { status: 409 });
   let access = { durationMinutes: wifiPackage.durationMinutes, dataLimitMb: wifiPackage.dataLimitMb, speedLimitKbps: wifiPackage.speedLimitKbps };
   if (automaticAccess) {
     try { access = validateAccessPackage(access); }
@@ -105,11 +111,11 @@ export async function POST(request: Request) {
   if (context && input.provider !== "btcpay" && (!previous || resumeUnstarted)) {
     try {
       if (!previous) {
-        const attempt = await consumeCheckoutAttempt({ routerId: payer!.routerId, macAddress: payer!.macAddress, phone: phone! });
-        if (!attempt.allowed) return Response.json({ error: "Too many payment attempts. Wait before requesting another M-Pesa prompt." },
+        const attempt = await consumeCheckoutAttempt({ routerId: payer!.routerId, macAddress: payer!.macAddress, phone });
+        if (!attempt.allowed) return Response.json({ error: input.provider === "lightning" ? "Too many payment attempts. Wait a few minutes before creating another Bitcoin invoice." : "Too many payment attempts. Wait before requesting another M-Pesa prompt." },
           { status: 429, headers: { "Retry-After": String(attempt.retryAfter), "Cache-Control": "no-store" } });
       }
-      if (input.provider === "bitika") await assertMeshDeviceCheckoutReady(context);
+      if (input.provider === "bitika" || input.provider === "lightning") await assertMeshDeviceCheckoutReady(context);
       else await assertMeshCheckoutReady(wifiPackage.priceKes, context);
     }
     catch (error) { return Response.json({ error: error instanceof PaymentProviderError ? error.message : "Internet checkout is temporarily unavailable. No payment was requested." }, { status: error instanceof PaymentProviderError ? error.httpStatus : 503 }); }
@@ -127,7 +133,7 @@ export async function POST(request: Request) {
       amountSats: wifiPackage.priceSats,
       ...(input.provider === "paystack" ? { providerInvoiceId: `mesh-${paymentId}`, checkoutUrl: `/pay/${paymentId}` } : {}),
       metadata: { packageName: wifiPackage.name, priceKes: wifiPackage.priceKes, requestFingerprint: fingerprint,
-        access, pass: passRules, collectionGuardVersion: 1, ...(context ? { meshContextId: context.id } : {}),
+        access, pass: passRules, collectionGuardVersion: 1, ...(bitcoinPrice ? { bitcoinPrice } : {}), ...(context ? { meshContextId: context.id } : {}),
         ...(payer ? { payerContextId: payer.id } : {}), ...(payerKey ? { payerDeviceKeyHash: deviceKeyHash(payerKey) } : {}),
         ...(input.provider === "paystack" ? { paystack: { mode: "live", amountKes: wifiPackage.priceKes, paymentId, status: "processing", collectionConfirmed: false } } : {}),
         ...(bitika ? { bitika: { mode: bitika.mode, amountKes: wifiPackage.priceKes, lightningAddress: bitika.lightningAddress, status: "processing" } } : {}) },
@@ -169,10 +175,11 @@ export async function POST(request: Request) {
         || ${JSON.stringify(recovery ? { bitikaCollectionRequest: recovery } : {})}::jsonb` })
         .where(and(eq(payments.id, payment.id), sql`NOT (${payments.metadata} ? 'bitikaChargeStartedAt')`));
     }
-    const invoice = await provider.createCheckout({ paymentId: payment.id, amountSats: payment.amountSats, amountKes: Number(payment.metadata.priceKes), packageName: String(payment.metadata.packageName), phone });
+    const amountKes = input.provider === "lightning" ? Number((payment.metadata.bitcoinPrice as { amountKes?: number } | undefined)?.amountKes) : Number(payment.metadata.priceKes);
+    const invoice = await provider.createCheckout({ paymentId: payment.id, amountSats: payment.amountSats, amountKes, packageName: String(payment.metadata.packageName), phone });
     await db
       .update(payments)
-      .set({ providerInvoiceId: invoice.id, checkoutUrl: invoice.checkoutUrl, metadata: sql`${payments.metadata} || ${JSON.stringify(invoice.metadata)}::jsonb`, updatedAt: new Date() })
+      .set({ providerInvoiceId: invoice.id, checkoutUrl: invoice.checkoutUrl, ...(invoice.amountSats ? { amountSats: invoice.amountSats } : {}), metadata: sql`${payments.metadata} || ${JSON.stringify(invoice.metadata)}::jsonb`, updatedAt: new Date() })
       .where(and(eq(payments.id, payment.id), inArray(payments.status, ["new", "processing"])));
     try {
       // Bitika collection is server-to-server. It never opens a general-internet
@@ -185,9 +192,9 @@ export async function POST(request: Request) {
   } catch (error) {
     // A timeout is an ambiguous collection outcome; retain the same reference
     // so a safe retry uses Bitika's Idempotency-Key rather than another charge.
-    if (input.provider === "btcpay") await db.update(payments).set({ status: "invalid", updatedAt: new Date() }).where(and(eq(payments.id, payment.id), inArray(payments.status, ["new", "processing"])));
+    if (input.provider === "btcpay" || input.provider === "lightning") await db.update(payments).set({ status: "invalid", updatedAt: new Date() }).where(and(eq(payments.id, payment.id), inArray(payments.status, ["new", "processing"])));
     console.error(`${input.provider} checkout creation failed`);
-    if (input.provider !== "btcpay") {
+    if (input.provider === "bitika" || input.provider === "paystack") {
       // A collection may already have sent its prompt. Keep the customer on
       // this owned receipt; exposing adapter errors invites a second purchase.
       await db.update(payments).set({ status: "processing", updatedAt: new Date(),
@@ -196,6 +203,6 @@ export async function POST(request: Request) {
       return Response.json({ paymentId: payment.id, checkoutUrl: `/pay/${payment.id}`, paymentPending: true },
         { status: 202, headers: { "Cache-Control": "no-store" } });
     }
-    return Response.json({ paymentId: payment.id, error: error instanceof PaymentProviderError ? error.message : input.provider !== "btcpay" ? "M-Pesa payments are temporarily unavailable" : "Lightning payments are temporarily unavailable" }, { status: error instanceof PaymentProviderError ? error.httpStatus : 503 });
+    return Response.json({ paymentId: payment.id, error: error instanceof PaymentProviderError ? error.message : "Bitcoin payments are temporarily unavailable" }, { status: error instanceof PaymentProviderError ? error.httpStatus : 503 });
   }
 }

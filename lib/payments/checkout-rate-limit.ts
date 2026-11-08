@@ -11,10 +11,11 @@ function limit(name: string, fallback: number) {
 // Use the existing durable counter store with a separate namespace. A new
 // request UUID or gateway join cookie cannot evade the device/phone limits.
 // Call only for a new M-Pesa purchase, after trusted host and phone validation.
-export async function consumeCheckoutAttempt(input: { routerId: string; macAddress: string; phone: string }) {
+export async function consumeCheckoutAttempt(input: { routerId: string; macAddress: string; phone?: string }) {
   const scopes: Array<[string, number]> = [
     [`device:${input.routerId}:${input.macAddress.toUpperCase()}`, limit("CHECKOUT_DEVICE_ATTEMPTS_PER_WINDOW", 3)],
-    [`phone:${input.phone}`, limit("CHECKOUT_PHONE_ATTEMPTS_PER_WINDOW", 5)],
+    // Bitcoin invoices have no phone; the device limit still applies.
+    ...(input.phone ? [[`phone:${input.phone}`, limit("CHECKOUT_PHONE_ATTEMPTS_PER_WINDOW", 5)] as [string, number]] : []),
   ];
   const keys = scopes.map(([scope]) => createHash("sha256").update(`checkout-v1:${scope}`).digest("hex"));
   const rows = await db.execute(sql`

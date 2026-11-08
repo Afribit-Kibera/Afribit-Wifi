@@ -182,11 +182,11 @@ try {
     await page.goto(base + '/?screen=connected');
     await page.getByRole('heading', { name: 'Turning on your internet.' }).waitFor();
     await page.goto(base + '/?bitika=0');
-    await page.getByRole('button', { name: 'Pay with bitcoin', exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Pay with Bitcoin', exact: true }).waitFor();
     assert.equal(await page.getByRole('radio', { name: 'M-Pesa', exact: true }).count(), 0);
     await page.goto(base+'/?unavailable=1');
     assert.equal(await page.getByRole('button',{name:'Payments temporarily unavailable',exact:true}).isDisabled(),true);
-    assert.equal(await page.getByRole('button',{name:'Pay with bitcoin',exact:true}).count(),0,'Unavailable providers must not masquerade as a Bitcoin checkout');
+    assert.equal(await page.getByRole('button',{name:'Pay with Bitcoin',exact:true}).count(),0,'Unavailable providers must not masquerade as a Bitcoin checkout');
     await page.getByText('No payment methods are available just now.',{exact:false}).waitFor();
     await page.goto(base+'/?single=1&missingContext=1');
     assert.equal(await page.getByRole('button',{name:'Reconnect to Mesh to pay',exact:true}).isDisabled(),true);

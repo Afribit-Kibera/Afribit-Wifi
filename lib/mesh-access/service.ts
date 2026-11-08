@@ -141,6 +141,49 @@ export async function queueMeshBitikaPaidAccess(paymentId: string, transaction: 
   return { id: existing.grantId };
 }
 
+// A paid Lightning invoice is already Bitcoin in the Afribit wallet. The
+// handoff matches the exact stored invoice hash and amount, once.
+export async function queueMeshLightningPaidAccess(paymentId: string, receipt: { paymentHash: string; amountSats: number }) {
+  const [payment] = await db.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
+  const stored = payment?.metadata.lightning as { invoice?: { paymentHash?: string }; amountSats?: number } | undefined;
+  if (!payment || payment.provider !== "lightning" || !uuid.test(String(payment.metadata.meshContextId ?? "")) ||
+      payment.providerInvoiceId !== receipt.paymentHash || stored?.invoice?.paymentHash !== receipt.paymentHash || stored.amountSats !== receipt.amountSats) {
+    throw new Error("Payment cannot issue access");
+  }
+  const [previous] = await db.select().from(meshAccessOrders).where(eq(meshAccessOrders.paymentId, paymentId)).limit(1);
+  if (previous) return { id: previous.grantId };
+  if (!["new", "processing"].includes(payment.status)) throw new Error("Payment cannot issue access");
+  const config = readMeshAccessConfig();
+  const [context] = await db.select().from(meshAccessContexts).where(and(eq(meshAccessContexts.id, String(payment.metadata.meshContextId)),
+    eq(meshAccessContexts.routerId, config.routerId), eq(meshAccessContexts.server, config.server), sql`${meshAccessContexts.joinedAt} IS NOT NULL`)).limit(1);
+  if (!context) throw new Error("Payment is missing its attested router context");
+  const access = validateAccessPackage(payment.metadata.access as Parameters<typeof validateAccessPackage>[0]);
+  const plan = makeOrder(context, access, { paymentId });
+  const rows = await db.execute(sql`
+    WITH eligible AS (
+      SELECT id,portal_session_id FROM payments WHERE id=${paymentId}::uuid AND provider='lightning'
+      AND provider_invoice_id=${receipt.paymentHash} AND status IN ('new','processing')
+      AND metadata->>'meshContextId'=${context.id}
+      AND metadata->'lightning'->'invoice'->>'paymentHash'=${receipt.paymentHash}
+      AND (metadata->'lightning'->>'amountSats')::bigint=${receipt.amountSats} FOR UPDATE
+    ), settled AS (
+      UPDATE payments SET status='settled',amount_sats=${receipt.amountSats},settled_at=now(),updated_at=now(),
+        metadata=jsonb_set(metadata,'{lightning}',(metadata->'lightning') || '{"status":"paid","verifiedBitcoinDelivery":true}'::jsonb)
+      WHERE id IN (SELECT id FROM eligible) RETURNING id,portal_session_id
+    ), grant_row AS (
+      INSERT INTO access_grants(id,portal_session_id,payment_id,mac_address,status,starts_at,expires_at,data_limit_mb,speed_limit_kbps,purpose)
+      SELECT ${plan.grantId}::uuid,portal_session_id,id,${context.macAddress},'pending',now(),${plan.expiresAt.toISOString()}::timestamptz,
+        ${access.dataLimitMb},${access.speedLimitKbps},'paid' FROM settled RETURNING id
+    ) INSERT INTO mesh_access_orders(id,context_id,router_id,payment_id,grant_id,encrypted_order,expires_at)
+      SELECT ${plan.order.id}::uuid,${context.id}::uuid,${config.routerId},${paymentId}::uuid,id,${plan.encrypted},${plan.expiresAt.toISOString()}::timestamptz
+      FROM grant_row RETURNING grant_id
+  `);
+  if (rows.rows[0]) return { id: String(rows.rows[0].grant_id) };
+  const [existing] = await db.select().from(meshAccessOrders).where(eq(meshAccessOrders.paymentId, paymentId)).limit(1);
+  if (!existing) throw new Error("Access handoff needs reconciliation; do not pay again");
+  return { id: existing.grantId };
+}
+
 export async function queueMeshVoucherAccess(input: { voucherId: string; portalSessionId: string; contextId: string; durationMinutes: number; dataLimitMb?: number | null; speedLimitKbps?: number | null }) {
   const config = readMeshAccessConfig();
   const [previous] = await db.select().from(meshAccessOrders).where(and(eq(meshAccessOrders.voucherId, input.voucherId), eq(meshAccessOrders.contextId, input.contextId))).limit(1);

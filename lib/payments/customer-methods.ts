@@ -6,7 +6,8 @@ import type { PaymentMethod } from "./types";
 export function customerPaymentMethods(methods: PaymentMethod[]): PaymentMethod[] {
   const mpesa = methods.find(method => method.id === "bitika" && method.currency === "KES")
     ?? methods.find(method => method.id === "paystack" && method.currency === "KES");
-  const bitcoin = methods.find(method => method.id === "btcpay" && method.currency === "BTC");
+  const bitcoin = methods.find(method => method.id === "lightning" && method.currency === "BTC")
+    ?? methods.find(method => method.id === "btcpay" && method.currency === "BTC");
   return [
     ...(mpesa ? [{ ...mpesa, label: "M-Pesa" }] : []),
     ...(bitcoin ? [{ ...bitcoin, label: "Bitcoin · Lightning" }] : []),

@@ -1,8 +1,8 @@
-export const paymentProviderIds = ["btcpay", "bitika", "paystack"] as const;
+export const paymentProviderIds = ["btcpay", "bitika", "paystack", "lightning"] as const;
 export type PaymentProviderId = (typeof paymentProviderIds)[number];
 export type PaymentState = "new" | "processing" | "settled" | "expired" | "invalid" | "refunded";
 
-export type PaymentMethod = { id: PaymentProviderId; label: string; currency: "BTC" | "KES" };
+export type PaymentMethod = { id: PaymentProviderId; label: string; currency: "BTC" | "KES"; discountPercent?: number };
 export type CheckoutInput = {
   paymentId: string;
   amountSats: number;
@@ -10,7 +10,7 @@ export type CheckoutInput = {
   packageName: string;
   phone?: string;
 };
-export type ProviderCheckout = { id: string; checkoutUrl: string; metadata: Record<string, unknown> };
+export type ProviderCheckout = { id: string; checkoutUrl: string; metadata: Record<string, unknown>; amountSats?: number };
 export type ProviderSnapshot = {
   status: PaymentState;
   providerStatus: string;

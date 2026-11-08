@@ -7,6 +7,8 @@ import { db } from "@/lib/db";
 import { payments } from "@/lib/db/schema";
 import { headers } from "next/headers";
 import { getMeshAccessStatus, getTrustedMeshContext } from "@/lib/mesh-access/service";
+import { readStoredLightning } from "@/lib/payments/lightning";
+import QRCode from "qrcode";
 
 export default async function PaymentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -20,13 +22,21 @@ export default async function PaymentPage({ params }: { params: Promise<{ id: st
     if (!context || (context.id !== payment.metadata.meshContextId && context.id !== payment.metadata.payerContextId)) notFound();
     nativeAccess = (await getMeshAccessStatus(request, { paymentId: id })) ?? { status: "pending" as const, expiresAt: null };
   }
+  // The invoice is shown only to the device that owns this payment (checked above).
+  const stored = payment.provider === "lightning" ? readStoredLightning(payment.metadata) : null;
+  const price = payment.metadata.bitcoinPrice as { amountKes?: number; savedKes?: number; discountPercent?: number } | undefined;
+  const lightning = stored && /^lnbc[0-9a-z]+$/i.test(stored.invoice.paymentRequest) ? {
+    paymentRequest: stored.invoice.paymentRequest, amountSats: stored.amountSats, expiresAt: stored.expiresAt,
+    amountKes: price?.amountKes ?? null, savedKes: price?.savedKes ?? 0, discountPercent: price?.discountPercent ?? 0,
+    qrSvg: await QRCode.toString(stored.invoice.paymentRequest.toUpperCase(), { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#203c32", light: "#ffffff" } }),
+  } : null;
   const details = payment.metadata[payment.provider] as { status?: string; resolutionRequired?: boolean; collectionConfirmed?: boolean; bitcoinSettlement?: string } | undefined;
   return (
     <main className="mesh-flow">
       <section className="mesh-flow-card">
         <Link href="/" aria-label="Return to Mesh"><BrandMark /></Link>
         <div className="flow-rule" />
-        <PaymentStatus paymentId={payment.id} initialStatus={payment.status} checkoutUrl={payment.checkoutUrl} provider={payment.provider} initialResolutionRequired={Boolean(details?.resolutionRequired)} initialNativeAccess={nativeAccess} initialProviderStatus={details?.status} initialCollectionConfirmed={Boolean(details?.collectionConfirmed)} initialSettlementStatus={details?.bitcoinSettlement} />
+        <PaymentStatus paymentId={payment.id} initialStatus={payment.status} checkoutUrl={payment.checkoutUrl} provider={payment.provider} initialResolutionRequired={Boolean(details?.resolutionRequired)} initialNativeAccess={nativeAccess} initialProviderStatus={details?.status} initialCollectionConfirmed={Boolean(details?.collectionConfirmed)} initialSettlementStatus={details?.bitcoinSettlement} lightning={lightning} />
       </section>
     </main>
   );

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, CreditCard, Fingerprint, Package, Router, ShieldCheck, Ticket } from "lucide-react";
+import { BarChart3, CreditCard, Fingerprint, Package, Router, Settings, ShieldCheck, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -13,6 +13,7 @@ const items = [
   { href: "/admin/whitelist", label: "Free sites", icon: ShieldCheck },
   { href: "/admin/network", label: "Network", icon: Router },
   { href: "/admin/security", label: "Security", icon: Fingerprint },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export function AdminNav() {

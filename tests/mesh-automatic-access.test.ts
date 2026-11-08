@@ -417,6 +417,61 @@ test("Automatic access: isolated PostgreSQL, router-bound vouchers and browser o
       assert(data.jobs.some((job: { order: { paymentId: string } }) => job.order.paymentId === id));
       assert.equal((await memory.select().from(schema.payments).where(eq(schema.payments.id, id)))[0].status, "settled");
     });
+    await t.test("Bitcoin checkout: discounted Lightning invoice for the router-attested device, settled by Blink", async () => {
+      await pg.exec("UPDATE payments SET status='invalid' WHERE status IN ('new','processing')");
+      await pg.exec(await readFile("scripts/mesh/lightning-checkout-schema.sql", "utf8"));
+      const walletId = randomUUID();
+      Object.assign(process.env, { BLINK_API_KEY: "blink_fixture", BLINK_BTC_WALLET_ID: walletId });
+      const { getPaymentMethods } = await import("../lib/payments/providers");
+      const { readPaymentSettings, savePaymentSettings } = await import("../lib/settings");
+      const bitcoin = getPaymentMethods(await readPaymentSettings()).find(method => method.id === "lightning");
+      assert.deepEqual(bitcoin, { id: "lightning", label: "Bitcoin", currency: "BTC", discountPercent: 5 });
+      const created = await service.createMeshContext({ macAddress: "06:22:33:44:88:BB", ipAddress: "10.30.0.207", server: config.server });
+      const url = new URL(created.joinUrl), session = url.searchParams.get("session")!;
+      await service.consumeMeshJoin(url.searchParams.get("ticket")!, session);
+      const [pkg] = await memory.select().from(schema.packages).limit(1);
+      let status = "PENDING", invoicesCreated = 0;
+      const invoice = { paymentRequest: "lnbc900n1fixture", paymentHash: "ab".repeat(32), satoshis: 0 };
+      globalThis.fetch = async (address, init) => {
+        assert.equal(String(address), "https://api.blink.sv/graphql", "Bitcoin checkout calls only the Afribit Blink wallet");
+        const query = JSON.parse(String(init?.body));
+        if (query.query.includes("MeshPrice")) return Response.json({ data: { realtimePrice: { timestamp: Math.floor(Date.now() / 1000),
+          denominatorCurrencyDetails: { id: "KES", fractionDigits: 2 }, btcSatPrice: { base: 10_000_000_000_000, offset: 12 } } } });
+        if (query.query.includes("MeshWalletCheck")) return Response.json({ data: { me: { defaultAccount: { wallets: [{ id: walletId, walletCurrency: "BTC" }] } } } });
+        if (query.query.includes("MeshInvoiceCreate")) {
+          invoicesCreated++;
+          invoice.satoshis = query.variables.input.amount;
+          return Response.json({ data: { lnInvoiceCreate: { errors: [], invoice } } });
+        }
+        return Response.json({ data: { lnInvoicePaymentStatusByPaymentRequest: { status, paymentHash: invoice.paymentHash, paymentRequest: invoice.paymentRequest } } });
+      };
+      const { POST: checkout } = await import("../app/api/payments/route");
+      const { GET: paymentStatus } = await import("../app/api/payments/[id]/route");
+      const headers = { "Content-Type": "application/json", cookie: `mesh_session=${session}` };
+      const id = randomUUID();
+      const buy = (provider: string, requestId: string) => checkout(new Request("https://mesh.fixture/api/payments", { method: "POST", headers,
+        body: JSON.stringify({ packageId: pkg.id, provider, requestId, ...(provider === "lightning" ? {} : { phone: "0700000098" }), macAddress: "02:00:00:00:00:01" }) }));
+      const first = await buy("lightning", id);
+      assert.equal(first.status, 201);
+      assert.equal((await first.json()).checkoutUrl, `/pay/${id}`);
+      const [payment] = await memory.select().from(schema.payments).where(eq(schema.payments.id, id));
+      assert.equal(payment.amountSats, 90, "KES 10 less 5% is KES 9, which is 90 sats at 10 cents per sat");
+      assert.deepEqual(payment.metadata.bitcoinPrice, { amountKes: 9, savedKes: 1, discountPercent: 5, priceKes: 10 });
+      const [context] = await memory.select().from(schema.meshAccessContexts).where(eq(schema.meshAccessContexts.id, String(payment.metadata.meshContextId)));
+      assert.equal(context.macAddress, "06:22:33:44:88:BB", "The router-attested device, not the browser's MAC field");
+      assert.equal((await buy("lightning", id)).status, 200);
+      assert.equal(invoicesCreated, 1, "A retry returns the same invoice");
+      assert.equal((await buy("bitika", randomUUID())).status, 409, "An open Bitcoin invoice locks the device against a second purchase");
+      const check = async () => (await paymentStatus(new Request(`https://mesh.fixture/api/payments/${id}`, { headers }), { params: Promise.resolve({ id }) })).json();
+      assert.equal((await check()).status, "new");
+      status = "PAID";
+      await new Promise(resolve => setTimeout(resolve, 2_100)); // Past the per-payment check interval.
+      assert.equal((await check()).status, "settled");
+      assert.equal((await memory.select().from(schema.meshAccessOrders).where(eq(schema.meshAccessOrders.paymentId, id))).length, 1);
+      await savePaymentSettings({ bitcoinEnabled: false, bitcoinDiscountPercent: 5 }, "admin:test");
+      assert.equal(getPaymentMethods(await readPaymentSettings()).some(method => method.id === "lightning"), false);
+      assert.equal((await buy("lightning", randomUUID())).status, 503, "Switched off in admin settings");
+    });
     await t.test("Voucher HTTP lookup preserves bounded old stock, blocks new legacy/disabled fallthrough and fails closed on key errors", async () => {
       const names = ["VOUCHER_ENCRYPTION_KEY", "VOUCHER_LOOKUP_KEY", "VOUCHER_LEGACY_ISSUED_BEFORE", "VOUCHER_LEGACY_LOOKUP_UNTIL", "VOUCHER_DEVICE_ATTEMPTS_PER_WINDOW"];
       const values = names.map(name => process.env[name]);

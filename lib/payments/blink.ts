@@ -36,11 +36,23 @@ export class BlinkReceiveClient {
     return { walletId: this.config.walletId, walletCurrency: "BTC" as const };
   }
   // Receiving only. This client has no wallet-send or fiat-conversion method.
-  async createReceiveInvoice(paymentId: string, amountSats: number): Promise<BlinkReceiveInvoice> {
+  // Live price of one satoshi in KES cents. Blink answers in minor units with
+  // a decimal offset; a stale or non-KES answer is refused.
+  async kesCentsPerSat(now = Date.now()) {
+    const data = await this.query("query MeshPrice($currency: DisplayCurrency!) { realtimePrice(currency: $currency) { timestamp denominatorCurrencyDetails { id fractionDigits } btcSatPrice { base offset } } }", { currency: "KES" });
+    const parsed = z.object({ timestamp: z.number(), denominatorCurrencyDetails: z.object({ id: z.literal("KES"), fractionDigits: z.literal(2) }),
+      btcSatPrice: z.object({ base: z.number().positive(), offset: z.number().int().min(0).max(20) }) }).safeParse(data.realtimePrice);
+    if (!parsed.success || Math.abs(now - parsed.data.timestamp * 1000) > 15 * 60_000) throw new PaymentProviderError("The Bitcoin price is unavailable just now");
+    const cents = parsed.data.btcSatPrice.base / 10 ** parsed.data.btcSatPrice.offset;
+    if (!Number.isFinite(cents) || cents <= 0) throw new PaymentProviderError("The Bitcoin price is unavailable just now");
+    return cents;
+  }
+  async createReceiveInvoice(paymentId: string, amountSats: number, expiresInMinutes?: number): Promise<BlinkReceiveInvoice> {
     if (!z.string().uuid().safeParse(paymentId).success || !satsSchema.safeParse(amountSats).success) throw new PaymentProviderError("Invalid Bitcoin settlement amount or reference", 400);
     await this.verifyWallet();
     const data = await this.query("mutation MeshInvoiceCreate($input: LnInvoiceCreateInput!) { lnInvoiceCreate(input: $input) { invoice { paymentRequest paymentHash satoshis } errors { code } } }",
-      { input: { walletId: this.config.walletId, amount: amountSats, externalId: `mesh-${paymentId}`, memo: `Mesh ${paymentId}` } });
+      { input: { walletId: this.config.walletId, amount: amountSats, externalId: `mesh-${paymentId}`, memo: `Mesh ${paymentId}`,
+        ...(expiresInMinutes ? { expiresIn: expiresInMinutes } : {}) } });
     const parsed = z.object({ invoice: invoiceSchema, errors: z.array(z.unknown()) }).safeParse(data.lnInvoiceCreate);
     if (!parsed.success || parsed.data.errors.length || parsed.data.invoice.satoshis !== amountSats) throw new PaymentProviderError("The receiving Bitcoin invoice could not be confirmed");
     return { ...parsed.data.invoice, walletId: this.config.walletId };

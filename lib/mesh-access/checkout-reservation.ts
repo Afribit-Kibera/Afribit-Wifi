@@ -11,7 +11,7 @@ export async function reserveMeshCheckout(owner: PurchaseOwner): Promise<boolean
     INSERT INTO mesh_checkout_reservations(router_id,mac_address,payment_id)
     SELECT c.router_id,c.mac_address,p.id
     FROM payments p JOIN mesh_access_contexts c ON c.id::text=p.metadata->>'meshContextId'
-    WHERE p.id=${owner.paymentId}::uuid AND p.provider IN ('paystack','bitika') AND p.status IN ('new','processing')
+    WHERE p.id=${owner.paymentId}::uuid AND p.provider IN ('paystack','bitika','lightning') AND p.status IN ('new','processing')
       AND c.id=${owner.contextId}::uuid AND c.router_id=${owner.routerId} AND c.mac_address=${owner.macAddress}
       AND c.joined_at IS NOT NULL AND c.expires_at > now()
       -- Also protect collections initiated before this table was installed.

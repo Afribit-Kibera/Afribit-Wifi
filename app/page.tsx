@@ -3,6 +3,7 @@ import { packages } from "@/lib/db/schema";
 import { PortalExperience } from "@/components/portal-experience";
 import { getBlinkAccess, getMeshServices } from "@/lib/mesh-services";
 import { getPaymentMethods } from "@/lib/payments/providers";
+import { readPaymentSettings } from "@/lib/settings";
 import { headers } from "next/headers";
 import { meshAutomaticAccessEnabled } from "@/lib/mesh-access/config";
 import { getTrustedMeshContext } from "@/lib/mesh-access/service";
@@ -17,7 +18,7 @@ export default async function Home({ searchParams }: HomeProps) {
   const automaticAccess = meshAutomaticAccessEnabled();
   // These independent reads run together instead of adding two database waits
   // to the router-to-catalogue handoff. Device context remains uncached.
-  const [query, trustedContext, catalogue] = await Promise.all([
+  const [query, trustedContext, catalogue, paymentSettings] = await Promise.all([
     searchParams,
     (async () => {
       if (!automaticAccess) return null;
@@ -33,6 +34,7 @@ export default async function Home({ searchParams }: HomeProps) {
         return { items: [] as typeof packages.$inferSelect[], unavailable: true };
       }
     })(),
+    readPaymentSettings(),
   ]);
   return (
     <PortalExperience
@@ -40,7 +42,7 @@ export default async function Home({ searchParams }: HomeProps) {
       services={getMeshServices()}
       blinkAccess={getBlinkAccess()}
       packagesUnavailable={catalogue.unavailable}
-      paymentMethods={getPaymentMethods()}
+      paymentMethods={getPaymentMethods(paymentSettings)}
       initialView={first(query.view) === "voucher" ? "voucher" : ["welcome", "explore"].includes(first(query.view) ?? "") ? "welcome" : "internet"}
       portalContext={trustedContext ? {
         macAddress: trustedContext.macAddress,

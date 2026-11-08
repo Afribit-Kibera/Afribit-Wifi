@@ -326,3 +326,11 @@ export const voucherRedemptionLimits = pgTable("voucher_redemption_limits", {
   windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull().defaultNow(),
   attempts: integer("attempts").notNull().default(1),
 });
+
+// Admin-editable settings by key, e.g. "payments" (Bitcoin checkout and discount).
+export const appSettings = pgTable("app_settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").$type<Record<string, unknown>>().notNull(),
+  updatedBy: text("updated_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

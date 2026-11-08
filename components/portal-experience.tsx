@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Check, Compass, Globe, L
 import { formatDuration, formatKes, formatSats } from "@/lib/utils";
 import type { PaymentMethod, PaymentProviderId } from "@/lib/payments/types";
 import { customerPaymentMethods } from "@/lib/payments/customer-methods";
+import { bitcoinPriceKes } from "@/lib/payments/bitcoin-price";
 
 type WifiPackage = {
   id: string;
@@ -108,8 +109,12 @@ export function PortalExperience({ packages, portalContext, services = [], blink
   const [otherCode, setOtherCode] = useState("");
   const paymentRequest = useRef<{ identity: string; id: string } | null>(null);
   const mpesaAvailable = paymentMethods.some(method => method.currency === "KES");
-  const isMpesa = paymentProvider !== "btcpay";
+  const selectedMethod = customerMethods.find(method => method.id === paymentProvider);
+  const isMpesa = selectedMethod ? selectedMethod.currency === "KES" : paymentProvider !== "btcpay";
   const selectedPackage = packages.find((item) => item.id === selectedId);
+  // Bitcoin buyers see the discounted KES price; the invoice is in sats at the live rate.
+  const bitcoinDiscount = !isMpesa && selectedMethod?.id === "lightning" ? selectedMethod.discountPercent ?? 0 : 0;
+  const bitcoinPrice = selectedPackage && bitcoinDiscount ? bitcoinPriceKes(selectedPackage.priceKes, bitcoinDiscount) : null;
   const featuredPasses = Array.from(new Map([
     packages[0],
     packages.find((item) => item.durationMinutes === 1440),
@@ -194,6 +199,11 @@ export function PortalExperience({ packages, portalContext, services = [], blink
       paymentRequest.current = null;
       window.location.assign(checkoutUrl.href);
     } catch (paymentError) {
+      if (!isMpesa) {
+        // No money moves before a Bitcoin invoice exists; the next tap starts a fresh request.
+        paymentRequest.current = null;
+        try { sessionStorage.removeItem("mesh:payment-request"); } catch { /* Storage may be disabled. */ }
+      }
       setError(controller.signal.aborted ? "We are still waiting for a payment response. If an M-Pesa prompt appeared, do not pay again. Stay connected to Mesh." : paymentError instanceof TypeError ? "We lost the connection to checkout. If you approved an M-Pesa prompt, do not pay again while it is being confirmed." : paymentError instanceof SyntaxError ? "We could not confirm the payment response. If you approved an M-Pesa prompt, do not pay again." : paymentError instanceof Error ? paymentError.message : "We could not confirm your payment request. Do not pay again if you already approved a prompt.");
       setLoading(false);
     } finally {
@@ -310,15 +320,15 @@ export function PortalExperience({ packages, portalContext, services = [], blink
                       </div> : <div className="mesh-package-empty"><Globe size={26} aria-hidden="true" /><h3>{packagesUnavailable ? "Internet passes could not load." : "No internet passes are available yet."}</h3><p>{packagesUnavailable ? "Refresh this page in a moment. Free apps and learning are still available when the network is connected." : "Please check again later. You can still use available free services."}</p></div>}
                       {packages.length ? <div ref={checkout} className="mesh-checkout">
                         <div className="mesh-checkout-summary"><span>Your internet pass</span><strong>{selectedPackage ? `${formatDuration(selectedPackage.durationMinutes)} · ${formatKes(selectedPackage.priceKes)}` : "Choose a pass"}</strong></div>
-                        {mpesaAvailable && customerMethods.length > 1 ? <fieldset className="mesh-payment-methods" disabled={loading}><legend>How would you like to pay?</legend><div>{customerMethods.map(method => <label key={method.id} data-selected={paymentProvider === method.id}><input type="radio" name="payment-method" value={method.id} checked={paymentProvider === method.id} onChange={() => { setPaymentProvider(method.id); setError(""); }} /><span>{method.label}</span></label>)}</div></fieldset> : null}
+                        {mpesaAvailable && customerMethods.length > 1 ? <fieldset className="mesh-payment-methods" disabled={loading}><legend>How would you like to pay?</legend><div>{customerMethods.map(method => <label key={method.id} data-selected={paymentProvider === method.id}><input type="radio" name="payment-method" value={method.id} checked={paymentProvider === method.id} onChange={() => { setPaymentProvider(method.id); setError(""); }} /><span>{method.label}{method.discountPercent ? <small className="mesh-method-save">Save {method.discountPercent}%</small> : null}</span></label>)}</div></fieldset> : null}
                         {isMpesa ? <div className="mesh-mpesa-phone"><div className="mesh-payment-brand"><Image src="/images/payments/mpesa.svg" alt="M-PESA" width={107} height={31} unoptimized /><span>Pay on your phone</span></div><label htmlFor="mesh-mpesa-phone">M-Pesa phone number</label><input ref={phoneInput} id="mesh-mpesa-phone" className="mesh-voucher-input" type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={event => setPhone(event.target.value)} placeholder="0712 345 678" maxLength={32} disabled={loading} aria-describedby="mesh-phone-help" /><p id="mesh-phone-help" className="mesh-checkout-note">Tap Pay, then wait for the M-Pesa prompt on this number. Approve with your PIN in that prompt. Your internet starts automatically after confirmation.</p></div> : null}
                         <div className="mesh-for-other">
                           <label><input type="checkbox" checked={forOther} onChange={event => { setForOther(event.target.checked); setError(""); }} disabled={loading} /> {selectedPackage?.kind === "tv" ? "Paying for a TV" : "Paying for a TV or another device"}</label>
                           {forOther ? <><p className="mesh-checkout-note">On the TV or other device, open Mesh, go to My pass and tap “Show this device’s code”. Enter that code here. The internet goes to that device.</p>
                             <input className="mesh-voucher-input" aria-label="Code shown on the other device" inputMode="numeric" placeholder="000000" maxLength={6} value={otherCode} onChange={event => setOtherCode(event.target.value.replace(/\D/g, "").slice(0, 6))} disabled={loading} /></> : null}
                         </div>
-                        <button type="button" className="mesh-button mesh-button-forest" onClick={startPayment} disabled={loading || !selectedPackage || !hasDevice || checkoutUnavailable || (isMpesa && (!mpesaAvailable || selectedPackage.priceKes < 10 || selectedPackage.priceKes > 10_000))}>{loading ? <Loader2 className="mesh-spin" size={18} aria-hidden="true" /> : <Zap size={18} aria-hidden="true" />}{loading ? (isMpesa ? "Requesting M-Pesa prompt…" : "Opening Lightning checkout…") : checkoutUnavailable ? "Payments temporarily unavailable" : !hasDevice ? "Reconnect to Mesh to pay" : isMpesa ? `Pay ${formatKes(selectedPackage?.priceKes ?? 0)} with M-Pesa` : "Pay with bitcoin"}<ArrowUpRight size={17} aria-hidden="true" /></button>
-                        <p className="mesh-checkout-note" role={checkoutUnavailable ? "status" : undefined}>{checkoutUnavailable ? "No payment methods are available just now. No money has been requested. Please try again shortly." : isMpesa ? "Stay on Mesh while we confirm your payment and turn on your internet." : "Pay the Lightning invoice, then return here while we turn on your internet."}</p>
+                        <button type="button" className="mesh-button mesh-button-forest" onClick={startPayment} disabled={loading || !selectedPackage || !hasDevice || checkoutUnavailable || (isMpesa && (!mpesaAvailable || selectedPackage.priceKes < 10 || selectedPackage.priceKes > 10_000))}>{loading ? <Loader2 className="mesh-spin" size={18} aria-hidden="true" /> : <Zap size={18} aria-hidden="true" />}{loading ? (isMpesa ? "Requesting M-Pesa prompt…" : "Creating your Bitcoin invoice…") : checkoutUnavailable ? "Payments temporarily unavailable" : !hasDevice ? "Reconnect to Mesh to pay" : isMpesa ? `Pay ${formatKes(selectedPackage?.priceKes ?? 0)} with M-Pesa` : bitcoinPrice ? `Pay ${formatKes(bitcoinPrice.amountKes)} in Bitcoin` : "Pay with Bitcoin"}<ArrowUpRight size={17} aria-hidden="true" /></button>
+                        <p className="mesh-checkout-note" role={checkoutUnavailable ? "status" : undefined}>{checkoutUnavailable ? "No payment methods are available just now. No money has been requested. Please try again shortly." : isMpesa ? "Stay on Mesh while we confirm your payment and turn on your internet." : bitcoinPrice && bitcoinPrice.savedKes > 0 ? `You save ${formatKes(bitcoinPrice.savedKes)} (${bitcoinDiscount}%). Pay the Lightning invoice from any Bitcoin wallet; your internet starts automatically.` : "Pay the Lightning invoice from any Bitcoin wallet; your internet starts automatically."}</p>
                       </div> : null}
                     </>
                   ) : (
