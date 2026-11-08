@@ -31,8 +31,8 @@ export async function createVoucherBatchAction(formData: FormData) {
   if (validFrom && validUntil && validUntil <= validFrom) throw new Error("Valid until must be later than valid from");
 
   const batchId = randomUUID();
-  await issueVoucherBatch(batchId, input.quantity, async records => db.batch([
-    db.insert(voucherBatches).values({
+  await issueVoucherBatch(batchId, input.quantity, async records => db.transaction(async tx => {
+    await tx.insert(voucherBatches).values({
     id: batchId,
     name: input.name,
     packageId: input.packageId || null,
@@ -46,10 +46,10 @@ export async function createVoucherBatchAction(formData: FormData) {
     maxRedemptions: input.maxRedemptions,
     prefix: "",
     createdBy: admin.actor,
-  }),
-    db.insert(vouchers).values(records),
-    db.insert(auditLogs).values({ actor: admin.actor, action: "voucher_batch.created", entityType: "voucher_batch", entityId: batchId, details: { quantity: input.quantity, durationMinutes: input.accessDurationMinutes, saleAmountSats: input.saleAmountSats, codeFormat: "six-digit" } }),
-  ]), async hashes => (await db.select({ hash: vouchers.codeHash }).from(vouchers)
+  });
+    await tx.insert(vouchers).values(records);
+    await tx.insert(auditLogs).values({ actor: admin.actor, action: "voucher_batch.created", entityType: "voucher_batch", entityId: batchId, details: { quantity: input.quantity, durationMinutes: input.accessDurationMinutes, saleAmountSats: input.saleAmountSats, codeFormat: "six-digit" } });
+  }), async hashes => (await db.select({ hash: vouchers.codeHash }).from(vouchers)
     .where(inArray(vouchers.codeHash, hashes))).map(record => record.hash));
   revalidatePath("/admin/vouchers");
   redirect(`/admin/vouchers/${batchId}`);

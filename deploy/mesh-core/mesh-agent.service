@@ -1,0 +1,21 @@
+[Unit]
+Description=Mesh controller (join service and router activation)
+After=network-online.target wg-quick@wg0.service mesh-app.service
+Wants=network-online.target
+
+[Service]
+User=mesh
+Group=mesh
+WorkingDirectory=/opt/mesh/current
+EnvironmentFile=/etc/mesh/agent.env
+ExecStart=/opt/mesh/current/node_modules/.bin/tsx gateway-agent/mesh-daemon.ts
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/mesh
+
+[Install]
+WantedBy=multi-user.target

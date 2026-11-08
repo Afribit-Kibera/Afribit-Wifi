@@ -40,13 +40,19 @@ async function main() {
     .from(vouchers).where(sql`${vouchers.codeHash} ~ '^[a-f0-9]{64}$'`).limit(1001);
   if (records.length !== inventory.legacy) throw new Error("Voucher inventory changed; pause issuance and inspect again");
   const replacements = prepareVoucherLookupMigration(records);
-  const updates = replacements.map(record => db.update(vouchers).set({ codeHash: record.keyedHash, codeLastFour: record.lastFour })
-    .where(and(eq(vouchers.id, record.id), eq(vouchers.codeHash, record.oldHash))).returning({ id: vouchers.id }));
-  const [first, ...remaining] = updates;
-  if (!first) return;
-  const results = await db.batch([first, ...remaining, db.insert(auditLogs).values({ actor: "operator:voucher-lookup-migration",
-    action: "voucher.lookup_hmac_v1", entityType: "voucher_inventory", details: { intendedRows: records.length, plaintextExported: false } })]);
-  const changed = results.slice(0, updates.length).reduce((total, result) => total + (Array.isArray(result) ? result.length : 0), 0);
+  if (!replacements.length) return;
+  // One transaction: every keyed-hash update and the audit record commit together.
+  const changed = await db.transaction(async tx => {
+    let total = 0;
+    for (const record of replacements) {
+      const rows = await tx.update(vouchers).set({ codeHash: record.keyedHash, codeLastFour: record.lastFour })
+        .where(and(eq(vouchers.id, record.id), eq(vouchers.codeHash, record.oldHash))).returning({ id: vouchers.id });
+      total += rows.length;
+    }
+    await tx.insert(auditLogs).values({ actor: "operator:voucher-lookup-migration",
+      action: "voucher.lookup_hmac_v1", entityType: "voucher_inventory", details: { intendedRows: records.length, plaintextExported: false } });
+    return total;
+  });
   console.log(JSON.stringify({ mode: "apply", changed, intended: records.length, financialRequestMade: false,
     ticketValuesChanged: false, flagsAndCountersChanged: false, inspectAgain: true }));
 }

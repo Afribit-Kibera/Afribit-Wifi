@@ -13,11 +13,11 @@ async function main() {
   const cookie = join.headers.get("set-cookie")!.split(";")[0];
   const batchId=randomUUID(), voucherId=randomUUID(), code=generateVoucherCode();
   await writeFile(`artifacts/mesh-lab/private/automatic-setup/voucher-${voucherId}.json`,JSON.stringify({batchId,voucherId,code}),{mode:0o600,flag:"wx"});
-  await db.batch([
-    db.insert(voucherBatches).values({id:batchId,name:"Automatic-access commissioning (no sale)",quantity:1,saleAmountSats:0,
-      accessDurationMinutes:3,speedLimitKbps:8192,createdBy:"lab-commissioning",prefix:"",maxRedemptions:1,validUntil:new Date(Date.now()+300_000)}),
-    db.insert(vouchers).values({id:voucherId,batchId,codeHash:hashVoucherCode(code),codeCiphertext:encryptVoucherCode(code),codeLastFour:code.slice(-4)})
-  ]);
+  await db.transaction(async tx => {
+    await tx.insert(voucherBatches).values({id:batchId,name:"Automatic-access commissioning (no sale)",quantity:1,saleAmountSats:0,
+      accessDurationMinutes:3,speedLimitKbps:8192,createdBy:"lab-commissioning",prefix:"",maxRedemptions:1,validUntil:new Date(Date.now()+300_000)});
+    await tx.insert(vouchers).values({id:voucherId,batchId,codeHash:hashVoucherCode(code),codeCiphertext:encryptVoucherCode(code),codeLastFour:code.slice(-4)});
+  });
   const redeem=async()=>fetch(config.cloudOrigin+"/api/vouchers/redeem",{method:"POST",headers:{cookie,"Content-Type":"application/json"},body:JSON.stringify({code})});
   const first=await redeem(), result=await first.json();
   if (!first.ok || !result.accessGrantId) throw new Error("Voucher handoff failed");

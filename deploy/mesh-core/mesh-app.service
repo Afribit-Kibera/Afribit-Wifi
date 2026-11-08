@@ -1,0 +1,21 @@
+[Unit]
+Description=Mesh portal (Next.js)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+User=mesh
+Group=mesh
+WorkingDirectory=/opt/mesh/current
+EnvironmentFile=/etc/mesh/app.env
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3000
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/mesh/releases
+
+[Install]
+WantedBy=multi-user.target

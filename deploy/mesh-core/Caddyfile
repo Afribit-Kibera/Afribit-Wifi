@@ -1,0 +1,50 @@
+# mesh-core: one Caddy in front of the portal (Next.js :3000) and the join
+# service (controller :8040).
+#
+# Two ways in:
+#  - Public: Cloudflare Tunnel -> cloudflared -> 127.0.0.1:80 (plain HTTP on
+#    loopback). Let's Encrypt HTTP-01 challenges arrive this way too.
+#  - Customers: router -> WireGuard -> 10.254.30.1:443 (TLS). The router's DNS
+#    points both names at 10.254.30.1, so customers never need a public edge
+#    address before they have paid.
+{
+	auto_https disable_redirects
+}
+
+http://wifi.afribit.africa {
+	bind 127.0.0.1
+	# Only cloudflared reaches loopback; it sets Cf-Connecting-Ip.
+	reverse_proxy 127.0.0.1:3000
+}
+
+http://mesh-core.afribit.africa {
+	bind 127.0.0.1
+	respond 404
+}
+
+https://wifi.afribit.africa {
+	bind 10.254.30.1
+	reverse_proxy 127.0.0.1:3000 {
+		# Customers arrive directly; overwrite any header they send.
+		header_up Cf-Connecting-Ip {remote_host}
+	}
+}
+
+https://mesh-core.afribit.africa {
+	bind 10.254.30.1
+	handle /start {
+		@guest remote_ip 10.30.0.0/24
+		handle @guest {
+			reverse_proxy 127.0.0.1:8040 {
+				header_up X-Mesh-Client-IP {remote_host}
+				header_up X-Mesh-Proxy-TLS 1
+			}
+		}
+		handle {
+			respond 403
+		}
+	}
+	handle {
+		respond 404
+	}
+}

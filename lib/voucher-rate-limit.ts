@@ -15,8 +15,12 @@ function attemptLimit(name: string, fallback: number) {
 // The global ceiling stops bypassing device limits by inventing MAC addresses,
 // while a locally blocked client cannot exhaust everyone else's global budget.
 export async function consumeVoucherAttempt(macAddress: string, requestHeaders: Headers) {
+  // Trust a client-IP header only from the edge that is configured to set it.
+  // Behind Cloudflare Tunnel, only cloudflared can reach the app socket.
   const trustedIp = process.env.VERCEL === "1"
-    ? requestHeaders.get("x-vercel-forwarded-for")?.split(",")[0].trim() : undefined;
+    ? requestHeaders.get("x-vercel-forwarded-for")?.split(",")[0].trim()
+    : process.env.MESH_TRUSTED_PROXY === "cloudflare"
+      ? requestHeaders.get("cf-connecting-ip")?.trim() || undefined : undefined;
   const scopes: Array<[string, number]> = [
     [`device:${macAddress.toUpperCase()}`, attemptLimit("VOUCHER_DEVICE_ATTEMPTS_PER_WINDOW", 5)]];
   if (trustedIp) scopes.push([`source:${trustedIp}`, attemptLimit("VOUCHER_SOURCE_ATTEMPTS_PER_WINDOW", 30)]);
