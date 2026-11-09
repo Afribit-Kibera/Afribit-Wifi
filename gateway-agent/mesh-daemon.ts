@@ -235,7 +235,7 @@ export function createJoinHandler(deps: {
       const redirect = new URL(joinUrl);
       if (redirect.origin !== cloudOrigin || redirect.pathname !== "/api/mesh/join") throw new Error("Invalid Mesh join URL");
       const view = new URL(request.url ?? "/start", "http://mesh.local").searchParams.get("view");
-      if (view === "internet" || view === "voucher" || view === "explore") redirect.searchParams.set("view", view);
+      if (view === "internet" || view === "voucher" || view === "free") redirect.searchParams.set("view", view);
       response.writeHead(302, { Location: redirect.toString() }); response.end();
     } catch { response.writeHead(503); response.end("We could not confirm your Mesh connection. Please try again."); }
     finally { busy.delete(ip); }

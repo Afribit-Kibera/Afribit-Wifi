@@ -21,9 +21,9 @@ test("Internet success needs an active gateway acknowledgement and a live deadli
 });
 
 test("Only identified captive windows automatically request the OS connectivity probe", () => {
-  assert.deepEqual(internetHandoff("CaptiveNetworkSupport/1.0"), { url: "http://captive.apple.com/hotspot-detect.html", automatic: true });
-  assert.deepEqual(internetHandoff("Android CaptivePortalLogin"), { url: "http://connectivitycheck.gstatic.com/generate_204", automatic: true });
-  for (const agent of ["iPhone Mobile Safari", "Android Chrome Safari", "iPhone AppleWebKit Mobile", ""]) assert.equal(internetHandoff(agent).automatic, false);
+  assert.deepEqual(internetHandoff("CaptiveNetworkSupport/1.0"), { url: "/online", automatic: true });
+  assert.deepEqual(internetHandoff("Android CaptivePortalLogin"), { url: "/online", automatic: true });
+  for (const agent of ["iPhone Mobile Safari", "Android Chrome Safari", "iPhone AppleWebKit Mobile", ""]) assert.deepEqual(internetHandoff(agent), { url: "https://www.google.com/", automatic: false });
 });
 
 test("Customer progress follows collection verification then router activation", () => {

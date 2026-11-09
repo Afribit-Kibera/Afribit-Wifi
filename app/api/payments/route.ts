@@ -17,6 +17,7 @@ import { consumeCheckoutAttempt } from "@/lib/payments/checkout-rate-limit";
 import { reserveMeshCheckout } from "@/lib/mesh-access/checkout-reservation";
 import { deviceKeyHash, packageDeviceRules, PassError, readDeviceKey, resolveDeviceCode } from "@/lib/mesh-access/passes";
 import { bitcoinPriceKes, readPaymentSettings } from "@/lib/settings";
+import { earlierPurchase, refreshEarlierPurchases } from "@/lib/payments/earlier-purchase";
 
 const paymentSchema = z.object({
   packageId: z.string().uuid(),
@@ -107,7 +108,8 @@ export async function POST(request: Request) {
     (input.provider === "paystack" ? !previous.metadata.paystackChargeStartedAt :
       input.provider === "bitika" && !previous.providerInvoiceId && !previous.metadata.bitikaChargeStartedAt));
   if (previous?.checkoutUrl && !resumeUnstarted) return Response.json({ paymentId: previous.id, checkoutUrl: previous.checkoutUrl }, { status: 200 });
-  if (previous && ["invalid", "expired", "refunded", "settled"].includes(previous.status)) return Response.json({ error: "This payment has ended. Check its result before creating another." }, { status: 409 });
+  // A closed reference is never reused. The phone drops it and starts a fresh one.
+  if (previous && ["invalid", "expired", "refunded", "settled"].includes(previous.status)) return Response.json({ error: "That payment was closed. Tap Pay again to start a new one.", code: "reference_closed" }, { status: 409 });
   if (context && input.provider !== "btcpay" && (!previous || resumeUnstarted)) {
     try {
       if (!previous) {
@@ -144,15 +146,26 @@ export async function POST(request: Request) {
   if (!payment || payment.metadata.requestFingerprint !== fingerprint || (context && payment.metadata.meshContextId !== context.id)) return Response.json({ error: "This payment reference belongs to a different request" }, { status: 409 });
 
   try {
-    if (context && input.provider !== "btcpay" && !await reserveMeshCheckout({ paymentId: payment.id,
-      contextId: context.id, routerId: context.routerId, macAddress: context.macAddress })) {
+    const owner = context && input.provider !== "btcpay" ? { paymentId: payment.id, contextId: context.id, routerId: context.routerId, macAddress: context.macAddress } : null;
+    let reserved = !owner || await reserveMeshCheckout(owner);
+    if (owner && !reserved) {
+      // An earlier purchase holds this device. Ask its provider now: a prompt
+      // nobody answered or an unpaid Bitcoin invoice should not lock it.
+      await refreshEarlierPurchases(owner, payment.id);
+      reserved = await reserveMeshCheckout(owner);
+    }
+    if (owner && !reserved) {
       // This reference never reached the provider. Close only the unstarted
       // local attempt; do not cancel or overwrite the existing real payment.
       await db.update(payments).set({ status: "invalid", updatedAt: new Date(),
         metadata: sql`${payments.metadata} || '{"checkoutConflict":true}'::jsonb` })
         .where(and(eq(payments.id, payment.id), inArray(payments.status, ["new", "processing"]),
           sql`NOT (${payments.metadata} ? 'paystackChargeStartedAt') AND NOT (${payments.metadata} ? 'bitikaChargeStartedAt')`));
-      return Response.json({ error: "Your earlier payment is still being checked. Return to that payment page; do not pay again." },
+      try { await assertMeshDeviceCheckoutReady(context!); }
+      catch (error) { if (error instanceof PaymentProviderError) return Response.json({ error: error.message }, { status: error.httpStatus, headers: { "Cache-Control": "no-store" } }); }
+      // Take them back to the payment that is still open, rather than a dead end.
+      const earlier = await earlierPurchase(owner, payment.id);
+      return Response.json({ error: "Your earlier payment is still open. Finish it or wait for it to close.", code: "earlier_payment", ...(earlier ? { paymentId: earlier } : {}) },
         { status: 409, headers: { "Cache-Control": "no-store" } });
     }
     if (input.provider === "paystack") {

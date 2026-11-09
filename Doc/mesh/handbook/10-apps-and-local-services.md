@@ -133,8 +133,8 @@ are not internet-independent community services.
 The home trial records existing Signal apps on an Android phone and an iPhone
 sending and receiving foreground text messages while joined to unpaid Mesh,
 with cellular data disabled and unrelated browsing blocked. The installed
-policy uses scoped TCP 443 destinations and the `KM-MESH-SIGNAL-TEXT` ownership
-markers. No broad UDP exception or paid session was required for the recorded
+policy uses scoped TCP 443 destinations, now part of the single `KM-MESH-FREE`
+list ([Free on Mesh](../mesh-free-access.md)). No broad UDP exception or paid session was required for the recorded
 text test.
 
 The policy must be treated as a destination exception, not cryptographic
@@ -146,7 +146,7 @@ The trial does not establish Signal registration, downloads, calls, media,
 background notifications, iOS locked-screen delivery or WAN-independent
 messaging. Test those separately before advertising them. Do not expand the
 rule to all Signal-documented ports/services without a scoped test and owner
-approval. The [Signal trial](../mesh-signal-text-trial.md) documents the
+approval. The [Signal trial](../mesh-free-access.md#signal) documents the
 installed router-rule evidence, failed initial attempt, later endpoint
 correction and final operator acceptance.
 
@@ -169,7 +169,7 @@ The operator reported that a notification arrived only after switching to paid
 mobile data. A separately commissioned Apple push policy is recorded, but
 physical locked-screen acceptance remains pending; Android push was not
 commissioned in that trial. Shared OS push endpoints can deliver notifications
-for other apps as well and still depend on WAN. See the [Blink scope](../mesh-blink-free-access.md)
+for other apps as well and still depend on WAN. See the [Blink scope](../mesh-free-access.md#blink)
 and [mobile push trial](../mesh-mobile-push-trial.md).
 
 **Customer-facing wording:** “Some signed-in Blink functions were tested without
@@ -767,9 +767,9 @@ these services grow beyond bounded trials, see
 | Security/privacy, logging and credentials | [Volume 08](08-security-and-privacy.md) |
 | Host lifecycle, backup and incident procedures | [Volume 09](09-operations.md); [local lab pause](../mesh-local-lab-pause-2026-10-14.md) |
 | Expansion, site authority and community decisions | [Volume 11](11-scale-and-governance.md) |
-| Signal text | [Signal trial](../mesh-signal-text-trial.md); [app installation/offline notes](../mesh-app-installation-and-offline.md) |
-| Blink | [Blink free-access trial](../mesh-blink-free-access.md); [mobile push trial](../mesh-mobile-push-trial.md) |
-| Education cards and PDF | [Free learning entry](../mesh-free-learning.md); [captive art direction](../mesh-captive-art-direction.md) |
+| Signal text | [Signal trial](../mesh-free-access.md#signal); [app installation/offline notes](../mesh-app-installation-and-offline.md) |
+| Blink | [Blink free-access trial](../mesh-free-access.md#blink); [mobile push trial](../mesh-mobile-push-trial.md) |
+| Education cards and PDF | [Free learning entry](../mesh-free-access.md#learning-sites); [captive art direction](../mesh-captive-art-direction.md) |
 | Jami and local bootstrap | [Jami trial](../mesh-jami-local-trial.md); [communication app research](../mesh-communications-app-research.md); [background delivery research](../mesh-background-delivery-options.md) |
 | Berty | [Berty local trial](../mesh-berty-local-trial.md); [communication app research](../mesh-communications-app-research.md) |
 | Nostr events and relays | [Nostr lab](../kibera-mesh-nostr-lab.md); [node/storage architecture](../kibera-mesh-node-and-storage-architecture.md) |

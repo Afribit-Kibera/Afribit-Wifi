@@ -21,6 +21,10 @@ export function PaymentStatus({ paymentId, initialStatus, checkoutUrl, provider 
   const [providerStatus, setProviderStatus] = useState(initialProviderStatus);
   const [collectionConfirmed, setCollectionConfirmed] = useState(initialCollectionConfirmed);
   const [settlementStatus, setSettlementStatus] = useState(initialSettlementStatus);
+  // An M-Pesa prompt times out after about a minute. Past three, nobody can
+  // still approve it, so the buyer may safely start again (the server checks).
+  const [promptTimedOut, setPromptTimedOut] = useState(false);
+  useEffect(() => { const timer = window.setTimeout(() => setPromptTimedOut(true), 185_000); return () => window.clearTimeout(timer); }, []);
   const state = customerPaymentState({ status, providerStatus, collectionConfirmed, resolutionRequired, settlementStatus, nativeAccess });
 
   useEffect(() => {
@@ -68,7 +72,7 @@ export function PaymentStatus({ paymentId, initialStatus, checkoutUrl, provider 
   if (provider === "lightning" && status === "expired" && !nativeAccess?.expiresAt) return <div><h1 className="flow-heading">This invoice expired.</h1><p className="flow-copy">No money was taken. Choose your pass again to get a new invoice.</p><Link className="flow-action" href="/?view=internet">Choose an internet pass</Link></div>;
   if (provider === "lightning" && state === "failed") return <div><XCircle className="flow-status-symbol is-error" size={44} /><h1 className="flow-heading">This invoice was closed.</h1><p className="flow-copy">If you paid it, don’t pay again. Keep this reference and ask Afribit for help.</p><p className="flow-note">Payment reference: {paymentId}</p><Link className="flow-action secondary" href="/?view=internet">Back to internet passes</Link></div>;
   if (state === "expired") return <div><h1 className="flow-heading">Your pass has ended.</h1><p className="flow-copy">Choose another pass when you’re ready to get back online.</p><Link className="flow-action" href="/?view=internet">Choose an internet pass</Link></div>;
-  if (state === "failed") return <div><XCircle className="flow-status-symbol is-error" size={44} /><h1 className="flow-heading">Payment wasn’t completed.</h1><p className="flow-copy">If money left your M-Pesa account, don’t pay again. Keep this reference and ask Afribit for help.</p><p className="flow-note">Payment reference: {paymentId}</p><Link className="flow-action secondary" href="/?view=internet">Back to internet passes</Link></div>;
+  if (state === "failed") return <div><XCircle className="flow-status-symbol is-error" size={44} /><h1 className="flow-heading">The payment didn’t go through.</h1><p className="flow-copy">The M-Pesa prompt was cancelled or timed out, so no pass was bought. You can try again now.</p><Link className="flow-action" href="/?view=internet">Try again</Link><p className="flow-note">If money did leave your M-Pesa account, don’t pay again. Share this reference with Afribit: {paymentId}</p></div>;
   if (state === "review") return <div><Smartphone className="flow-status-symbol" size={40} /><h1 className="flow-heading">We’re checking your purchase.</h1><p className="flow-copy">{collectionConfirmed || status === "settled" ? "Your payment was received. " : ""}Your pass is taking longer than expected. Don’t pay again. Keep this page open; if it stays here, share the reference below with Afribit.</p><p className="flow-note">Payment reference: {paymentId}</p>{pollError ? <p className="flow-inline-status" role="status">We’ll check again when the connection returns.</p> : null}</div>;
   if (provider === "lightning") {
     const paid = state === "connecting" || providerStatus === "paid";
@@ -84,7 +88,9 @@ export function PaymentStatus({ paymentId, initialStatus, checkoutUrl, provider 
       <Loader2 className="flow-status-symbol flow-loading" size={36} />
       <h1 className="flow-heading">{connecting ? "Turning on your internet." : confirming ? collectionConfirmed ? "Payment received." : "Confirming your payment." : state === "approve" ? "Approve the M-Pesa prompt." : "Sending your M-Pesa prompt."}</h1>
       <p className="flow-copy">{connecting ? "Your payment is confirmed. Stay connected to Mesh. We’ll switch on your internet automatically and let you know when it’s ready." : confirming ? collectionConfirmed ? "We’re preparing your internet pass. Keep this page open; you don’t need to pay again." : "M-Pesa is confirming your payment. This can take a moment. Keep this page open and don’t pay again." : "Wait for the M-Pesa prompt on the number you entered, then approve it with your PIN. Enter your PIN only in that prompt. We’ll update this page automatically."}</p>
-      {!connecting && !confirming ? <p className="flow-help">Already approved? Leave this page open while M-Pesa confirms. No prompt yet? Wait a moment and check that phone. Don’t start another payment.</p> : null}
+      {!connecting && !confirming ? promptTimedOut
+        ? <div className="flow-retry"><p className="flow-help">No prompt, or you closed it? It has timed out now, so you can start again. If you entered your PIN, wait here instead.</p><Link className="flow-action secondary" href="/?view=internet">Try again</Link></div>
+        : <p className="flow-help">Already approved? Leave this page open while M-Pesa confirms. No prompt yet? Wait a moment and check that phone.</p> : null}
       {pollError ? <p className="flow-inline-status" role="status">The connection is taking a moment. We’ll keep checking. Don’t pay again.</p> : null}
       <details className="flow-reference"><summary>Payment reference</summary><p>{paymentId}</p></details>
     </div>;

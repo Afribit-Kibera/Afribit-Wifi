@@ -35,18 +35,7 @@ Generated concepts and source prompts are recorded in [image provenance](mesh-im
 
 ## Local and online configuration
 
-`lib/mesh-services.ts` reads server-side site settings. Leave these blank until the corresponding service is deployed and reachable from customers:
-
-```env
-MESH_LOCAL_BOARD_URL=
-MESH_LOCAL_MEDIA_URL=
-MESH_LOCAL_LEARNING_URL=
-MESH_BLINK_FREE_ACCESS_ENABLED=false
-```
-
-The directory accepts HTTP(S) destinations without URL credentials and does not infer service health from a configured URL. Cloud production does not inherit private lab links from a developer's preview. Do not advertise raw storage endpoints as a media browser.
-
-The Blink flag controls the catalogue's claim, not the router policy. Set it true only after the actual wallet journey works for unpaid visitors. [Blink research](blink-free-app-pilot.md) records exact candidate hostnames, API/WSS endpoints, conditional onboarding dependencies and current gateway limitations.
+What unpaid devices may use comes from one file, `lib/free-access.json`. The portal's "Free on Mesh" screen and the router rules both read it; there are no separate site settings. See [Free on Mesh](mesh-free-access.md).
 
 The separate [local captive shell](mesh-captive-shell.md) consists of five dependency-free files under `mikrotik/hotspot-mesh/`. It preserves an offline introduction, explicitly gates unconfigured actions and passes `view=internet` or `view=voucher` to the cloud portal. The existing `hotspot-bv` files remain available.
 

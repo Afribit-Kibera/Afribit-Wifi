@@ -16,8 +16,7 @@ import paramiko
 ROOT = Path(__file__).resolve().parents[2]
 HOST = "10.20.0.1"
 PIN = "SHA256:oyCgA93qwim6JGTa055M/07J5wvjACh0LMnrhY7DUxQ"
-FILES = ("mesh.html", "login.html", "status.html", "fstatus.html", "api.json", "bitcoin.svg", "blink.svg", "signal.svg",
-         "learn-bitcoin.jpg", "learn-community.jpg", "learn-diploma.jpg")
+FILES = ("mesh.html", "login.html", "status.html", "fstatus.html", "api.json", "blink.svg", "signal.svg")
 
 
 def main():

@@ -12,3 +12,9 @@ and the logo remain their owners' trademarks. Public availability of this
 asset does not grant ownership or blanket permission for other brand uses.
 The SVG is served locally so captive customers do not need to reach an
 external image host.
+
+# Bitcoin mark
+
+`bitcoin.svg` is the standard public-domain Bitcoin mark, the same file the
+router welcome page uses (see `mikrotik/hotspot-mesh/bitcoin-asset-source.md`):
+<https://commons.wikimedia.org/wiki/File:Bitcoin.svg>.

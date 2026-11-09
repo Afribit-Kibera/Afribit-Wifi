@@ -195,6 +195,74 @@ test("Device passes: recovery, household slots, moves and router revocation orde
       const c = await device("02:00:00:00:08:03");
       await assert.rejects(passes.redeemPassCode(c, { code: await codeOf(second.paymentId), keyHash: null }), /ended/);
     });
+
+    await t.test("A phone whose pass ended is told so, until it has a live pass again", async () => {
+      const phone = await device("02:00:00:00:09:01");
+      const paid = await paidOrder(phone, { kind: "personal", deviceLimit: 1 });
+      await passes.ensurePasses();
+      assert.equal(await passes.recentlyEndedPass(phone), null, "A live pass has not ended");
+      await memory.update(schema.meshPasses).set({ expiresAt: new Date(Date.now() - 60_000) }).where(eq(schema.meshPasses.paymentId, paid.paymentId));
+      const ended = await passes.recentlyEndedPass(phone);
+      assert.equal(ended?.kind, "personal");
+      assert.equal(ended?.early, false);
+      assert.match(ended?.endedAtLabel ?? "", /\d:\d\d/);
+      await memory.update(schema.meshPasses).set({ revokedAt: new Date(Date.now() - 30_000) }).where(eq(schema.meshPasses.paymentId, paid.paymentId));
+      assert.equal((await passes.recentlyEndedPass(phone))?.early, false, "Revoked after it expired is not early");
+      await memory.update(schema.meshPasses).set({ revokedAt: new Date(Date.now() - 120_000) }).where(eq(schema.meshPasses.paymentId, paid.paymentId));
+      assert.equal((await passes.recentlyEndedPass(phone))?.early, true, "Staff ended it before its time");
+      await memory.update(schema.meshPasses).set({ expiresAt: new Date(Date.now() - 25 * 3_600_000), revokedAt: null }).where(eq(schema.meshPasses.paymentId, paid.paymentId));
+      assert.equal(await passes.recentlyEndedPass(phone), null, "Older than a day is not mentioned");
+      await memory.update(schema.meshPasses).set({ expiresAt: new Date(Date.now() - 60_000) }).where(eq(schema.meshPasses.paymentId, paid.paymentId));
+      await paidOrder(phone, { kind: "personal", deviceLimit: 1 });
+      await passes.ensurePasses();
+      assert.equal(await passes.recentlyEndedPass(phone), null, "A new live pass replaces the message");
+    });
+
+    await t.test("Staff find a pass by Wi-Fi address or code and can read its code", async () => {
+      const admin = await import("../lib/admin/passes");
+      assert.deepEqual(admin.parsePassSearch(""), {});
+      assert.deepEqual(admin.parsePassSearch("hello"), {});
+      assert.deepEqual(admin.parsePassSearch("02:00:00:00:0a"), { mac: "020000000A" });
+      assert.ok("codeHash" in admin.parsePassSearch("123 456 7890"));
+      const phone = await device("02:00:00:00:0A:01");
+      const paid = await paidOrder(phone, { kind: "household", deviceLimit: 3 });
+      await passes.ensurePasses();
+      const pass = await passOf(paid.paymentId);
+      const code = await codeOf(paid.paymentId);
+      const byMac = await admin.findPasses({ query: "00:0a:01" });
+      assert.deepEqual(byMac.map(item => item.id), [pass.id]);
+      assert.equal(byMac[0].live, true);
+      assert.equal(byMac[0].source, "M-Pesa");
+      assert.equal(byMac[0].devices[0].mac, "02:00:00:00:0A:01");
+      assert.deepEqual((await admin.findPasses({ query: passes.formatPassCode(code) })).map(item => item.id), [pass.id]);
+      assert.deepEqual(await admin.findPasses({ query: "9999999999" }), []);
+      assert.ok((await admin.findPasses({})).some(item => item.id === pass.id), "Recent passes show with no search");
+      const today = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Nairobi" });
+      assert.ok((await admin.findPasses({ day: today })).some(item => item.id === pass.id));
+      assert.equal(await admin.passCode(pass.id), passes.formatPassCode(code));
+      assert.equal(await admin.passCode(randomUUID()), null);
+    });
+
+    await t.test("A TV is recognised, and its screen learns when it is online", async () => {
+      const { isTvBrowser } = await import("../lib/mesh-access/tv");
+      for (const agent of [
+        "Mozilla/5.0 (Linux; VIDAA 7.0; Hisense SmartTV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0 Safari/537.36",
+        "Mozilla/5.0 (SMART-TV; LINUX; Tizen 6.0) AppleWebKit/537.36 (KHTML, like Gecko) 76.0.3809.146/6.0 TV Safari/537.36",
+        "Mozilla/5.0 (Web0S; Linux/SmartTV) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.79 Safari/537.36 WebAppManager",
+        "Mozilla/5.0 (Linux; Android 9; BRAVIA 4K UR2 Build/PTT1.190515.001.S52) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0 Mobile Safari/537.36",
+      ]) assert.equal(isTvBrowser(agent), true, agent);
+      for (const agent of [
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 18_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.1 Mobile/15E148 Safari/604.1",
+        "Mozilla/5.0 (Linux; Android 14; SM-A156E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36",
+        "", null,
+      ]) assert.equal(isTvBrowser(agent), false, String(agent));
+      const tv = await device("02:00:00:00:0B:01");
+      assert.deepEqual(await passes.deviceOnline(tv), { online: false, expiresAt: null });
+      const paid = await paidOrder(tv, { kind: "tv", deviceLimit: 1 });
+      assert.deepEqual(await passes.deviceOnline(tv), { online: true, expiresAt: paid.expiresAt.toISOString() });
+      await memory.update(schema.meshAccessOrders).set({ status: "revoking" }).where(eq(schema.meshAccessOrders.id, paid.id));
+      assert.equal((await passes.deviceOnline(tv)).online, false, "An order being switched off is not online");
+    });
   } finally {
     for (const [key, value] of saved) Reflect.set(db, key, value);
     globalThis.fetch = originalFetch;

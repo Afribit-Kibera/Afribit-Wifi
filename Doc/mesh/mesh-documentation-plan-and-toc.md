@@ -317,7 +317,7 @@ This is a substantial writing programme, not a request to fill every chapter bef
 | [Bitika](mesh-bitika-primary.md), [incident recovery](mesh-bitika-pending-ack-incident-2026-10-06.md), [fallback settlement](mesh-engine-bitcoin-settlement.md) | Provider differences, original-reference safety and delivered-Bitcoin evidence |
 | [Security audit](mesh-security-audit-2026-10-06.md), [release](mesh-security-release-2026-10-06.md), [device plans](mesh-pilot-readiness-and-device-plans.md) | Controls versus remaining risk; distinguish historical audit from fresh assurance |
 | [Physical vouchers](mesh-physical-voucher-cards.md), [six-digit vouchers](mesh-six-digit-vouchers.md) | Design/stock/printing versus implementation and actual issuance |
-| [Free Blink](mesh-blink-free-access.md), [Signal](mesh-signal-text-trial.md), [push](mesh-mobile-push-trial.md), [background options](mesh-background-delivery-options.md) | Per-feature app dependencies and accepted versus missing outcomes |
+| [Free Blink](mesh-free-access.md#blink), [Signal](mesh-free-access.md#signal), [push](mesh-mobile-push-trial.md), [background options](mesh-background-delivery-options.md) | Per-feature app dependencies and accepted versus missing outcomes |
 | [Jami](mesh-jami-local-trial.md), [Berty](mesh-berty-local-trial.md), [storage/node research](kibera-mesh-node-and-storage-architecture.md) | Separate research evidence from a production local-service promise |
 | [IP/stewardship dossier](../PROJECT_IP_AND_LEGAL_STEWARDSHIP.md) | Maintain counsel questions, ownership/asset inventory and public-claim limits |
 

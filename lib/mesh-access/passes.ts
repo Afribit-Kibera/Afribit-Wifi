@@ -304,3 +304,34 @@ export async function completeMeshRevocation(id: string, claimToken: string) {
     UPDATE access_grants SET status='revoked',updated_at=now() WHERE id IN (SELECT grant_id FROM revoked) RETURNING id`);
   return rows.rows.length === 1;
 }
+
+// The pass this device last used, if it ended in the last day and nothing
+// live replaced it. Lets the Mesh page say "your pass ended" instead of
+// looking like a lost connection.
+export async function recentlyEndedPass(context: Pick<Context, "macAddress" | "routerId" | "deviceKeyHash">) {
+  const rows = await db.execute(sql`SELECT p.kind, COALESCE(pay.metadata->>'packageName', '') AS package_name,
+      COALESCE(p.revoked_at, p.expires_at) AS ended_at, p.revoked_at IS NOT NULL AND p.revoked_at < p.expires_at AS early
+    FROM mesh_pass_devices d JOIN mesh_passes p ON p.id=d.pass_id LEFT JOIN payments pay ON pay.id=p.payment_id
+    WHERE (d.mac_address=${context.macAddress} OR d.device_key_hash=${context.deviceKeyHash ?? null}) AND p.router_id=${context.routerId}
+      AND COALESCE(p.revoked_at, p.expires_at) <= now() AND COALESCE(p.revoked_at, p.expires_at) > now() - interval '24 hours'
+      AND NOT EXISTS (SELECT 1 FROM mesh_pass_devices d2 JOIN mesh_passes p2 ON p2.id=d2.pass_id
+        WHERE (d2.mac_address=${context.macAddress} OR d2.device_key_hash=${context.deviceKeyHash ?? null}) AND d2.removed_at IS NULL
+          AND p2.revoked_at IS NULL AND p2.expires_at > now())
+    ORDER BY COALESCE(p.revoked_at, p.expires_at) DESC LIMIT 1`);
+  const row = rows.rows[0];
+  if (!row) return null;
+  const endedAt = new Date(String(row.ended_at));
+  // "2:03 pm", or "Sun 2:03 pm" when it ended more than half a day ago. Nairobi time.
+  const endedAtLabel = endedAt.toLocaleString("en-KE", { timeZone: "Africa/Nairobi", hour: "numeric", minute: "2-digit",
+    ...(endedAt.getTime() < Date.now() - 12 * 3_600_000 ? { weekday: "short" as const } : {}) });
+  return { kind: String(row.kind) as PassKind, packageName: String(row.package_name), endedAt, endedAtLabel, early: row.early === true };
+}
+
+// Whether the router has switched this device on: an activated order for its
+// Wi-Fi address that hasn't ended. A TV's code screen waits for this.
+export async function deviceOnline(context: Pick<Context, "macAddress" | "routerId">) {
+  const { rows: [row] } = await db.execute(sql`SELECT o.expires_at FROM mesh_access_orders o JOIN mesh_access_contexts c ON c.id=o.context_id
+    WHERE c.mac_address=${context.macAddress} AND o.router_id=${context.routerId} AND o.status='active' AND o.expires_at > now()
+    ORDER BY o.expires_at DESC LIMIT 1`);
+  return row ? { online: true, expiresAt: new Date(String(row.expires_at)).toISOString() } : { online: false, expiresAt: null };
+}

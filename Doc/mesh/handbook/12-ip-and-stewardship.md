@@ -799,7 +799,7 @@ the approved secure channel and on a need-to-know basis.
 | Apps and third-party service scope | [Volume 10](10-apps-and-local-services.md) |
 | Brand mark and portal artwork evidence | [Captive art direction](../mesh-captive-art-direction.md); [official app-mark sources](../../../public/images/apps/SOURCES.md) |
 | Font provenance and router asset use | [Captive shell](../mesh-captive-shell.md); [voucher artwork/provenance](../mesh-physical-voucher-cards.md) |
-| Learning resource source and copy limits | [Free learning entry](../mesh-free-learning.md) |
+| Learning resource source and copy limits | [Free learning entry](../mesh-free-access.md#learning-sites) |
 | Community, contributor and site roles | [Scale and community governance](11-scale-and-governance.md) |
 | Documentation plan and release status | [Mesh documentation plan](../mesh-documentation-plan-and-toc.md) |
 

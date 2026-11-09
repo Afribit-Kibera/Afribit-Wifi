@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, CreditCard, Fingerprint, Package, Router, Settings, ShieldCheck, Ticket } from "lucide-react";
+import { BarChart3, CreditCard, Fingerprint, IdCard, Package, Router, Settings, ShieldCheck, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/admin", label: "Overview", icon: BarChart3 },
+  { href: "/admin/passes", label: "Passes", icon: IdCard },
   { href: "/admin/vouchers", label: "Vouchers", icon: Ticket },
   { href: "/admin/packages", label: "Packages", icon: Package },
   { href: "/admin/payments", label: "Payments", icon: CreditCard },
   { href: "/admin/whitelist", label: "Free sites", icon: ShieldCheck },
-  { href: "/admin/network", label: "Network", icon: Router },
+  { href: "/admin/network", label: "Connections", icon: Router },
   { href: "/admin/security", label: "Security", icon: Fingerprint },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];

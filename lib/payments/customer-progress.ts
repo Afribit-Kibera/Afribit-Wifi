@@ -16,12 +16,12 @@ export function hasActiveInternetAccess(access: MeshNativeStatus | null | undefi
 }
 
 export function internetHandoff(userAgent: string): { url: string; automatic: boolean } {
-  return {
-    url: /Android/i.test(userAgent) ? "http://connectivitycheck.gstatic.com/generate_204" : "http://captive.apple.com/hotspot-detect.html",
-    // Normal Safari/Chrome must retain the receipt. A missing Safari token is
-    // not proof of a captive window: other in-app browsers omit it as well.
-    automatic: /CaptiveNetworkSupport|CaptivePortal(?:Login)?/i.test(userAgent),
-  };
+  // Normal Safari/Chrome must retain the receipt. A missing Safari token is
+  // not proof of a captive window: other in-app browsers omit it as well.
+  const automatic = /CaptiveNetworkSupport|CaptivePortal(?:Login)?/i.test(userAgent);
+  // The sign-in window goes to our own page, which makes the phone check the
+  // Wi-Fi again. Apple's and Google's check pages are blank or say "Success".
+  return { url: automatic ? "/online" : "https://www.google.com/", automatic };
 }
 
 // A pending device reservation exists before a customer has paid. It must

@@ -38,7 +38,7 @@ to spend wallet funds. It does not establish every Blink feature or offline use.
 ## Router and design handoff
 
 Primary's updated welcome page has the prominent free option and photo-led
-resource cards. [Free learning record](mesh-free-learning.md) includes the
+resource cards. [Free learning record](mesh-free-access.md#learning-sites) includes the
 original Bitcoin Diploma PDF link, local thumbnails, network scope and backup.
 The local return page explains that staying connected without a pass does not
 require purchasing internet; actual OS popup dismissal remains phone-dependent.

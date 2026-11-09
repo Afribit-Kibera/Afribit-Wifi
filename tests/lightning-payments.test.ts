@@ -8,6 +8,13 @@ import { eq } from "drizzle-orm";
 import * as schema from "../lib/db/schema";
 import { BlinkReceiveClient, readBlinkConfig } from "../lib/payments/blink";
 import { bitcoinPriceKes } from "../lib/payments/bitcoin-price";
+import { blinkPayLink } from "../lib/payments/wallet-links";
+
+test("Blink link opens Blink's Send screen with the invoice", () => {
+  assert.equal(blinkPayLink("LNBC9640N1PTEST0"), "blink://lnbc9640n1ptest0");
+  assert.throws(() => blinkPayLink("https://evil.example/x"));
+  assert.throws(() => blinkPayLink("lnbc1 javascript:alert(1)"));
+});
 
 test("Bitcoin discount is taken off the KES price, rounded in the buyer's favour", () => {
   assert.deepEqual(bitcoinPriceKes(100, 5), { amountKes: 95, savedKes: 5 });

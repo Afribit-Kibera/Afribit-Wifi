@@ -265,7 +265,7 @@ unless a reviewed feature requires it. Guest rules must still deny management.
 First retain the accepted Signal **text** scope; then commission Blink's
 installed-wallet balance/receive scope separately. A real wallet payment is a
 separate approved money movement, not a prerequisite for a no-money reachability
-test. See [Signal acceptance](mesh-signal-text-trial.md) and
+test. See [Signal acceptance](mesh-free-access.md#signal) and
 [Blink dependency plan](blink-free-app-pilot.md).
 
 ## Communication independent of the internet

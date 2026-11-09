@@ -73,8 +73,7 @@ policy, read [pilot readiness and device plans](mesh-pilot-readiness-and-device-
 
 - [Network foundation and limits](kibera-mesh-network-readiness.md)
 - [Wi-Fi/IP and optional LoRa direction](mesh-ip-and-lora-direction.md)
-- [Free Signal trial](mesh-signal-text-trial.md)
-- [Free Blink scope](mesh-blink-free-access.md)
+- [Free on Mesh: Signal, Blink and learning sites](mesh-free-access.md)
 - [Scoped mobile notification trial](mesh-mobile-push-trial.md)
 - [Offline Jami trial](mesh-jami-local-trial.md)
 - [Offline Berty trial](mesh-berty-local-trial.md)

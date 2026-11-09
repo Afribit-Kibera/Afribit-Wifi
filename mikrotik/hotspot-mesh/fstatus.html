@@ -13,5 +13,5 @@ $(if logged-in == yes)
 $(else)
 <h1>No active pass.</h1><p>This device does not have an active internet pass. You can still use available free apps and learning resources on Mesh.</p><a href="$(link-login-only)">Choose an internet pass</a><p>Already paid? Return to your payment page to check the result. Do not pay again while it is being confirmed.</p>
 $(endif)
-<p><a class="logout" href="./mesh.html">Your Mesh page</a></p></main></body>
+<p><a class="logout" href="$(link-login-only)#free">Free on Mesh</a></p></main></body>
 </html>

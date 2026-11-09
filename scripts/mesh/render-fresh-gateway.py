@@ -18,6 +18,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import free_access  # noqa: E402  (shared with the live-router script)
 CONTROLLER = "10.254.30.1"
 TUNNEL_ADDRESS = "10.254.30.11/24"
 
@@ -109,6 +111,8 @@ def render(serial):
         "    /ip hotspot profile add name=KM-MESH-PROFILE hotspot-address=10.30.0.1 html-directory=flash/mesh-captive login-by=http-chap use-radius=no",
         "    /ip hotspot add name=KM-MESH-001 interface=mesh-customer-30 profile=KM-MESH-PROFILE address-pool=none idle-timeout=5m keepalive-timeout=2m disabled=no",
         f'    /ip hotspot walled-garden ip add server=KM-MESH-001 src-address=10.30.0.0/24 dst-address={CONTROLLER} protocol=tcp dst-port=443 action=accept comment="mesh:cloud:join-tls-garden"',
+        "    # Free without a pass: Signal, Blink (also used to pay) and the learning sites.",
+        *("    " + line for line in free_access.install_commands()),
         "    # Customers reach the portal and the join service over the controller link,",
         "    # never through shared public edge addresses.",
         f'    /ip dns static add name=mesh-core.afribit.africa address={CONTROLLER} ttl=5m comment="mesh:cloud:join-host"',

@@ -9,7 +9,7 @@ test("Device purchase reservation serializes contenders, survives uncertainty an
   const env = { ...process.env };
   process.env.DATABASE_URL = "postgresql://fixture:fixture@unused.invalid/fixture";
   const pg = await PGlite.create();
-  await pg.exec(`CREATE TABLE payments(id uuid PRIMARY KEY,provider text,status text,metadata jsonb);
+  await pg.exec(`CREATE TABLE payments(id uuid PRIMARY KEY,provider text,status text,metadata jsonb,provider_invoice_id text,created_at timestamptz DEFAULT now());
     CREATE TABLE mesh_access_contexts(id uuid PRIMARY KEY,router_id text,mac_address text,joined_at timestamptz,expires_at timestamptz);
     CREATE TABLE mesh_access_orders(context_id uuid,router_id text,status text,expires_at timestamptz);`);
   await pg.exec(await readFile("scripts/mesh/checkout-reservations-schema.sql", "utf8"));
@@ -60,6 +60,44 @@ test("Device purchase reservation serializes contenders, survives uncertainty an
     assert.equal(await reserveMeshCheckout(legacyBitika), true);
     await pg.query("UPDATE payments SET status='invalid' WHERE id=$1", [legacyBitika.paymentId]);
     assert.equal(await reserveMeshCheckout(backup), true, "A confirmed Bitika decline permits a backup purchase");
+
+    // A prompt nobody answered. Once it has timed out and Bitika, asked again
+    // just now, still says nobody approved it, the device may buy again.
+    await pg.exec("UPDATE payments SET status='invalid'; DELETE FROM mesh_checkout_reservations");
+    const abandoned = await purchase("bitika");
+    assert.equal(await reserveMeshCheckout(abandoned), true);
+    const started = Date.now() - 4 * 60_000;
+    const waiting = (fields: Record<string, unknown>) => pg.query("UPDATE payments SET status='processing',provider_invoice_id='qadi_1',metadata=metadata || $2::jsonb WHERE id=$1",
+      [abandoned.paymentId, JSON.stringify({ bitikaChargeStartedAt: started, bitika: { status: "processing" }, ...fields })]);
+    await waiting({});
+    const retry = await purchase("bitika");
+    assert.equal(await reserveMeshCheckout(retry), false, "Age alone never releases a sent prompt");
+    await waiting({ replaceCheckedAt: Date.now() });
+    await pg.query("UPDATE payments SET metadata=jsonb_set(metadata,'{bitika,status}','\"processing_payment\"') WHERE id=$1", [abandoned.paymentId]);
+    assert.equal(await reserveMeshCheckout(retry), false, "Money moving keeps the device on that payment");
+    await waiting({ replaceCheckedAt: Date.now(), bitikaChargeStartedAt: Date.now() - 60_000, bitika: { status: "processing" } });
+    assert.equal(await reserveMeshCheckout(retry), false, "A prompt that may still be on screen keeps blocking");
+    await waiting({ replaceCheckedAt: Date.now(), bitikaChargeStartedAt: started, bitika: { status: "processing" } });
+    assert.equal(await reserveMeshCheckout(retry), true, "A timed-out, unanswered prompt no longer locks the device");
+
+    // An unpaid Bitcoin invoice, freshly checked, gives way to M-Pesa.
+    await pg.exec("UPDATE payments SET status='invalid'; DELETE FROM mesh_checkout_reservations");
+    const invoice = await purchase("lightning");
+    assert.equal(await reserveMeshCheckout(invoice), true);
+    await pg.query("UPDATE payments SET status='processing',provider_invoice_id='hash',metadata=metadata || $2::jsonb WHERE id=$1", [invoice.paymentId, JSON.stringify({ lightning: { status: "pending" } })]);
+    const mpesa = await purchase("bitika");
+    assert.equal(await reserveMeshCheckout(mpesa), false, "Unchecked invoice still blocks");
+    await pg.query("UPDATE payments SET metadata=metadata || $2::jsonb WHERE id=$1", [invoice.paymentId, JSON.stringify({ replaceCheckedAt: Date.now() })]);
+    assert.equal(await reserveMeshCheckout(mpesa), true, "A checked, unpaid invoice gives way");
+
+    // A purchase that never reached a provider stops blocking after a minute.
+    await pg.exec("UPDATE payments SET status='invalid'; DELETE FROM mesh_checkout_reservations");
+    const stuck = await purchase("bitika");
+    assert.equal(await reserveMeshCheckout(stuck), true);
+    const fresh = await purchase("bitika");
+    assert.equal(await reserveMeshCheckout(fresh), false, "A purchase being created right now keeps its place");
+    await pg.query("UPDATE payments SET created_at=now()-interval '2 minutes' WHERE id=$1", [stuck.paymentId]);
+    assert.equal(await reserveMeshCheckout(fresh), true);
   } finally {
     Reflect.set(db, "execute", saved);
     for (const key of Object.keys(process.env)) if (!(key in env)) delete process.env[key];

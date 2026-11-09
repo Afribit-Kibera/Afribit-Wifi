@@ -1,34 +1,74 @@
+import { requireAdmin } from "@/lib/auth";
 import { connection } from "next/server";
-import { and, count, desc, eq, gt } from "drizzle-orm";
-import { Clock3, PowerOff, Wifi } from "lucide-react";
-import { extendGrantAction, manualGrantAction, revokeGrantAction } from "./actions";
+import { Activity, CalendarDays, Clock3, Repeat, Smartphone, Wifi } from "lucide-react";
 import { PageHeading } from "@/components/page-heading";
 import { AdminRouterHealth } from "@/components/admin-router-health";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { db } from "@/lib/db";
-import { accessGrants, routerJobs } from "@/lib/db/schema";
+import { connectionDays, connectionHours, connectionTotals, recentSessions } from "@/lib/admin/connections";
+import { readMeshAccessConfig } from "@/lib/mesh-access/config";
+
+const nairobi = { timeZone: "Africa/Nairobi" } as const;
+const time = (date: Date) => date.toLocaleString("en-KE", { ...nairobi, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const hourLabel = (iso: string) => new Date(iso).toLocaleTimeString("en-KE", { ...nairobi, hour: "2-digit", minute: "2-digit" });
+const dayLabel = (day: string) => new Date(`${day}T12:00:00+03:00`).toLocaleDateString("en-KE", { ...nairobi, weekday: "short", day: "numeric", month: "short" });
+function bytes(value: number) {
+  const units = ["B", "KB", "MB", "GB", "TB"]; let index = 0, amount = value;
+  while (amount >= 1024 && index < units.length - 1) { amount /= 1024; index++; }
+  return `${amount.toFixed(index ? 1 : 0)} ${units[index]}`;
+}
+const minutes = (value: number) => value >= 60 ? `${Math.floor(value / 60)}h ${value % 60}m` : `${value}m`;
+// A thin bar so busy hours stand out at a glance.
+const bar = (value: number, max: number) => <span className="ml-2 inline-block h-2 rounded-full bg-[var(--green)] align-middle" style={{ width: `${max ? Math.max(2, Math.round(80 * value / max)) : 0}px` }} aria-hidden="true" />;
 
 export default async function NetworkPage() {
+  await requireAdmin(); // The layout's check doesn't stop this page rendering; check here too.
   await connection(); // Admin data is per request; never read the database at build time.
-  const [[queued], [failed], grants, jobs] = await Promise.all([
-    db.select({ value: count() }).from(routerJobs).where(eq(routerJobs.status, "queued")),
-    db.select({ value: count() }).from(routerJobs).where(eq(routerJobs.status, "failed")),
-    db.select().from(accessGrants).where(and(eq(accessGrants.status, "active"), gt(accessGrants.expiresAt, new Date()))).orderBy(desc(accessGrants.expiresAt)).limit(100),
-    db.select().from(routerJobs).orderBy(desc(routerJobs.createdAt)).limit(50),
-  ]);
+  const routerId = readMeshAccessConfig().routerId;
+  let history;
+  try { history = await Promise.all([connectionTotals(routerId), connectionHours(routerId), connectionDays(routerId), recentSessions(routerId)]); }
+  catch { history = null; }
   return (
     <>
-      <PageHeading eyebrow="Gateway" title="Network operations" description="Live MikroTik health, connected devices and access controls." />
+      <PageHeading eyebrow="Mesh" title="Connections" description="Who is on the Mesh right now, and how busy it has been. Times follow Nairobi." />
       <AdminRouterHealth />
-      <form action={manualGrantAction} className="panel p-5 md:p-6">
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4"><div><label className="field-label" htmlFor="macAddress">Device MAC</label><Input id="macAddress" name="macAddress" placeholder="AA:BB:CC:DD:EE:FF" required /></div><div><label className="field-label" htmlFor="ipAddress">IP address</label><Input id="ipAddress" name="ipAddress" placeholder="192.168.88.20" /></div><div><label className="field-label" htmlFor="durationMinutes">Time (minutes)</label><Input id="durationMinutes" name="durationMinutes" type="number" min="5" defaultValue="60" required /></div><div><label className="field-label" htmlFor="speedLimitKbps">Speed cap (Kbps)</label><Input id="speedLimitKbps" name="speedLimitKbps" type="number" min="1" /></div></div>
-        <div className="mt-6 flex justify-end"><Button type="submit"><Wifi size={17} /> Grant access</Button></div>
-      </form>
-      <div className="mt-6 grid gap-3 sm:grid-cols-3"><div className="panel metric orange p-5"><span className="text-xs text-[var(--muted)]">Queued jobs</span><strong className="mt-4 block text-2xl">{queued.value}</strong></div><div className="panel metric green p-5"><span className="text-xs text-[var(--muted)]">Active grants</span><strong className="mt-4 block text-2xl">{grants.length}</strong></div><div className="panel metric p-5"><span className="text-xs text-[var(--muted)]">Failed jobs</span><strong className="mt-4 block text-2xl">{failed.value}</strong></div></div>
-      <section className="panel mt-6"><div className="border-b border-[var(--line)] px-5 py-4"><h2 className="text-sm font-bold">Active access</h2></div><div className="table-wrap"><table className="data-table"><thead><tr><th>Device</th><th>Expires</th><th>Limits</th><th>Extend</th><th></th></tr></thead><tbody>{grants.map((grant) => <tr key={grant.id}><td className="font-mono text-xs">{grant.macAddress}</td><td>{grant.expiresAt.toLocaleString("en-KE")}</td><td className="text-[var(--muted)]">{grant.speedLimitKbps ? `${grant.speedLimitKbps} Kbps` : "Default"}</td><td><form action={extendGrantAction} className="flex items-center gap-2"><input type="hidden" name="id" value={grant.id} /><Input aria-label="Extension minutes" className="w-24" name="minutes" type="number" min="5" defaultValue="60" /><Button type="submit" variant="secondary" size="icon" title="Extend access"><Clock3 size={15} /></Button></form></td><td><form action={revokeGrantAction}><input type="hidden" name="id" value={grant.id} /><Button type="submit" variant="danger" size="icon" title="Revoke access"><PowerOff size={15} /></Button></form></td></tr>)}{grants.length === 0 && <tr><td colSpan={5} className="h-28 text-center text-[var(--muted)]">No active access grants.</td></tr>}</tbody></table></div></section>
-      <section className="panel mt-6"><div className="border-b border-[var(--line)] px-5 py-4"><h2 className="text-sm font-bold">Router jobs</h2></div><div className="table-wrap"><table className="data-table"><thead><tr><th>Created</th><th>Job</th><th>Attempts</th><th>Status</th><th>Error</th></tr></thead><tbody>{jobs.map((job) => <tr key={job.id}><td>{job.createdAt.toLocaleString("en-KE")}</td><td className="font-mono text-xs">{job.type}</td><td>{job.attempts} / {job.maxAttempts}</td><td><Badge tone={job.status === "completed" ? "success" : job.status === "failed" ? "danger" : "warning"}>{job.status}</Badge></td><td className="max-w-sm truncate text-xs text-[var(--muted)]">{job.lastError ?? "—"}</td></tr>)}</tbody></table></div></section>
+      {history ? <ConnectionHistory data={history} /> : <section className="panel p-5"><p className="text-sm text-[var(--muted)]">Connection history starts once the connection-history migration is applied.</p></section>}
     </>
   );
+}
+
+function ConnectionHistory({ data: [totals, hours, days, sessions] }: { data: [Awaited<ReturnType<typeof connectionTotals>>, Awaited<ReturnType<typeof connectionHours>>, Awaited<ReturnType<typeof connectionDays>>, Awaited<ReturnType<typeof recentSessions>>] }) {
+  const peakHour = Math.max(0, ...hours.map(hour => hour.peakOnline));
+  const peakDay = Math.max(0, ...days.map(day => day.devices));
+  const metrics = [
+    { label: "Devices (30 days)", value: String(totals.devices30), note: `${totals.returning30} came back on another day`, icon: Smartphone, tone: "green" },
+    { label: "Sessions (30 days)", value: String(totals.sessions30), note: "times a device came online", icon: Repeat, tone: "" },
+    { label: "Busiest moment", value: String(totals.peakOnline30), note: totals.peakAt ? `online at once · ${time(totals.peakAt)}` : "online at once", icon: Activity, tone: "orange" },
+    { label: "Data used (30 days)", value: bytes(totals.bytes30), note: totals.since ? `recording since ${time(totals.since)}` : "recording starts with the next report", icon: Wifi, tone: "gold" },
+  ];
+  return <>
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {metrics.map(({ label, value, note, icon: Icon, tone }) => <div key={label} className={`panel metric ${tone} p-5`}>
+        <div className="flex items-center justify-between text-[var(--muted)]"><span className="text-xs font-semibold">{label}</span><Icon size={17} /></div>
+        <strong className="mt-4 block text-2xl">{value}</strong><span className="mt-1 block text-xs text-[var(--muted)]">{note}</span>
+      </div>)}
+    </div>
+    <section className="panel mt-6">
+      <div className="border-b border-[var(--line)] px-5 py-4"><h2 className="flex items-center gap-2 text-sm font-bold"><Clock3 size={16} /> Last 24 hours</h2></div>
+      <div className="table-wrap"><table className="data-table"><thead><tr><th>Hour</th><th>Most online at once</th><th>Average online</th><th>Most on Wi-Fi</th><th>Different devices</th></tr></thead>
+        <tbody>{hours.map(hour => <tr key={hour.hour}><td>{hourLabel(hour.hour)}</td><td>{hour.peakOnline}{bar(hour.peakOnline, peakHour)}</td><td>{hour.averageOnline}</td><td>{hour.peakOnWifi}</td><td>{hour.devices}</td></tr>)}</tbody></table></div>
+    </section>
+    <section className="panel mt-6">
+      <div className="border-b border-[var(--line)] px-5 py-4"><h2 className="flex items-center gap-2 text-sm font-bold"><CalendarDays size={16} /> Last 30 days</h2></div>
+      <div className="table-wrap"><table className="data-table"><thead><tr><th>Day</th><th>Devices</th><th>Sessions</th><th>Most online at once</th><th>Average session</th><th>Down / up</th></tr></thead>
+        <tbody>{days.map(day => <tr key={day.day}><td>{dayLabel(day.day)}</td><td>{day.devices}{bar(day.devices, peakDay)}</td><td>{day.sessions}</td><td>{day.peakOnline}</td><td>{day.sessions ? minutes(day.averageMinutes) : "—"}</td><td className="text-xs">{day.sessions ? `${bytes(day.bytesDown)} / ${bytes(day.bytesUp)}` : "—"}</td></tr>)}</tbody></table></div>
+    </section>
+    <section className="panel mt-6">
+      <div className="border-b border-[var(--line)] px-5 py-4"><h2 className="text-sm font-bold">Recent sessions</h2></div>
+      <div className="table-wrap"><table className="data-table"><thead><tr><th>Device</th><th>Plan</th><th>Came online</th><th>Left</th><th>Time online</th><th>Down / up</th></tr></thead>
+        <tbody>{sessions.map(session => <tr key={session.id}><td className="font-mono text-xs">{session.macAddress}<span className="block text-[var(--muted)]">{session.ipAddress}</span></td>
+          <td>{session.plan ?? <span className="text-[var(--muted)]">—</span>}</td><td>{time(session.startedAt)}</td>
+          <td>{session.endedAt ? time(session.endedAt) : <span className="font-semibold text-[var(--green)]">Online now</span>}</td>
+          <td>{minutes(session.minutes)}</td><td className="text-xs">{bytes(session.bytesDown)} / {bytes(session.bytesUp)}</td></tr>)}
+          {sessions.length === 0 && <tr><td colSpan={6} className="h-28 text-center text-[var(--muted)]">No sessions recorded yet.</td></tr>}</tbody></table></div>
+    </section>
+  </>;
 }

@@ -228,8 +228,10 @@ export async function getMeshAccessStatus(request: Request, input: { paymentId?:
   // The buyer may watch a payment made for another device (a TV or a child's
   // phone); otherwise only the device that holds the order sees it.
   const [order] = await db.select().from(meshAccessOrders).where(and(
-    input.paymentId ? sql`${meshAccessOrders.contextId}=${context.id}::uuid OR EXISTS(SELECT 1 FROM payments p WHERE p.id=${meshAccessOrders.paymentId}
-      AND p.metadata->>'payerContextId'=${context.id})` : eq(meshAccessOrders.contextId, context.id),
+    // The same device after rejoining Mesh also sees its own order.
+    input.paymentId ? sql`(${meshAccessOrders.contextId}=${context.id}::uuid OR EXISTS(SELECT 1 FROM payments p WHERE p.id=${meshAccessOrders.paymentId}
+      AND p.metadata->>'payerContextId'=${context.id}) OR EXISTS(SELECT 1 FROM mesh_access_contexts oc WHERE oc.id=${meshAccessOrders.contextId}
+      AND oc.router_id=${context.routerId} AND oc.mac_address=${context.macAddress}))` : eq(meshAccessOrders.contextId, context.id),
     input.paymentId ? eq(meshAccessOrders.paymentId, input.paymentId) : eq(meshAccessOrders.grantId, input.grantId!)))
     .orderBy(sql`${meshAccessOrders.createdAt} DESC`).limit(1);
   if (!order) return null;

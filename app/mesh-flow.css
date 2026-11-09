@@ -1,53 +1,93 @@
+/* Mesh customer screens: one card, one task per screen. */
 .mesh-flow {
-  --flow-paper: #f4f1e9;
+  --flow-paper: #fffaf2;
   --flow-ink: #203c32;
+  --flow-muted: #53665b;
+  --flow-line: #e7dfd1;
+  --flow-orange: #f7931a;
+  --flow-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .16 0 0 0 0 .14 0 0 0 0 .12 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   min-height: 100svh;
-  padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+  padding: max(20px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
   display: grid;
-  place-items: center;
-  background: var(--flow-paper);
+  place-items: start center;
+  background: var(--flow-grain), var(--flow-paper);
   color: var(--flow-ink);
 }
 .mesh-flow-card { width: min(100%, 440px); }
+.mesh-flow a:focus-visible, .mesh-flow button:focus-visible, .mesh-flow input:focus-visible { outline: 3px solid #748940; outline-offset: 3px; }
 .mesh-flow .brand-name { color: var(--flow-ink); font-size: 25px; letter-spacing: -.06em; }
-.mesh-flow .brand-kicker { color: #657267; letter-spacing: .13em; }
-.mesh-flow .mesh-brand-symbol { background: #203c32; color: #dff58b; border: 0; border-radius: 11px; width: 45px; height: 45px; }
-.mesh-flow .flow-rule { height: 1px; background: #d8dbce; margin: 34px 0; }
-.mesh-flow .flow-heading { font-size: clamp(32px, 7vw, 42px); line-height: 1.08; letter-spacing: -.055em; font-weight: 650; margin: 25px 0 16px; }
-.mesh-flow .flow-copy { font-size: 15px; color: #53665b; line-height: 1.75; margin: 14px 0; }
+.mesh-flow .mesh-brand-symbol { background: #203c32; color: #dff58b; border: 0; border-radius: 11px; width: 45px; height: 45px; display: grid; place-items: center; }
+.mesh-flow .flow-rule { height: 1px; background: #d8dbce; margin: 28px 0; }
+.mesh-flow .flow-heading { font-size: clamp(30px, 7vw, 40px); line-height: 1.08; letter-spacing: -.05em; font-weight: 650; margin: 22px 0 14px; }
+.mesh-flow .flow-copy { font-size: 15px; color: var(--flow-muted); line-height: 1.6; margin: 12px 0; }
+.mesh-flow .flow-note { font-size: 13px; line-height: 1.6; color: #596c5c; margin: 18px 0; }
+.mesh-flow .flow-note a, .mesh-flow .flow-help a { text-decoration: underline; text-underline-offset: 3px; }
 .mesh-flow .flow-status-symbol { color: #335b42; }
 .mesh-flow .flow-status-symbol.is-error { color: #a33d32; }
-.mesh-flow .flow-action { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 16px 20px; min-height: 54px; border-radius: 11px; margin-top: 23px; background: #203c32; color: #f4f1e9; border: 1px solid #203c32; font-size: 15px; font-weight: 600; }
-.mesh-flow .flow-action:focus-visible, .mesh-flow a:focus-visible { outline: 3px solid #748940; outline-offset: 4px; }
-.mesh-flow .flow-action:hover { background: #355848; }
-.mesh-flow .flow-action.secondary { background: transparent; color: #203c32; border-color: #bdc5b6; margin-top: 12px; }
-.mesh-flow .flow-note { font-size: 12px; line-height: 1.65; color: #596c5c; margin: 20px 0; }
-.mesh-flow .flow-loading { display: inline-block; animation: flow-spin 1s linear infinite; }
+.mesh-flow .flow-action { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 54px; padding: 15px 20px; margin-top: 20px; border-radius: 11px; background: var(--flow-orange); border: 1px solid var(--flow-orange); color: #29251f; font-size: 16px; font-weight: 650; cursor: pointer; }
+.mesh-flow .flow-action:hover { background: #ffad42; }
+.mesh-flow .flow-action:disabled { background: #f1e6d6; border-color: #e6d6c0; color: #8a7a66; cursor: default; }
+.mesh-flow .flow-action.secondary { background: transparent; border-color: #d6c9b7; color: var(--flow-ink); margin-top: 12px; }
+.mesh-flow .flow-loading { display: inline-block; animation: flow-spin 1s linear infinite; vertical-align: -3px; }
 .mesh-flow .flow-inline-status { font-size: 13px; color: #754437; line-height: 1.5; }
 @keyframes flow-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .mesh-flow .flow-loading { animation: none; } }
-.mesh-flow { --flow-paper:#fffaf2; --flow-ink:#203c32; }
-.mesh-flow .flow-action { background:#f7931a; border-color:#f7931a; color:#29251f; }
-.mesh-flow .flow-action:hover { background:#ffad42; }
-.mesh-flow .flow-action.secondary { background:transparent; border-color:#d6c9b7; }
-.flow-mpesa-logo { display:block; width:107px; height:31px; object-fit:contain; margin-bottom:28px; }
-.flow-steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; list-style:none; padding:0; margin:0 0 34px; }
-.flow-steps li { display:flex; flex-direction:column; align-items:flex-start; gap:9px; padding-top:13px; border-top:2px solid #e7dfd1; color:#8a847a; font-size:11px; line-height:1.5; }
-.flow-steps li > span { display:grid; place-items:center; width:23px; height:23px; border-radius:50%; background:#ede6da; font-size:11px; font-weight:650; }
-.flow-steps li[data-state="current"] { color:#87470a; border-color:#f7931a; font-weight:650; }
-.flow-steps li[data-state="current"] > span { background:#ffedcf; }
-.flow-steps li[data-state="done"] { color:#335b42; border-color:#335b42; }
-.flow-help { padding:15px 17px; background:#ffedcf; border:1px solid #f0d9b8; border-radius:10px; font-size:13px; line-height:1.65; color:#705130; }
-.flow-reference { margin-top:26px; font-size:12px; color:#687267; }
-.flow-reference summary { cursor:pointer; }
-.flow-reference p { overflow-wrap:anywhere; margin-top:12px; }
-.flow-success { text-align:center; padding:30px 22px 20px; background:#fffdf8; border:1px solid #e8dcc8; border-radius:22px; box-shadow:0 16px 50px #7d572a0d; }
-.flow-success-mark { display:grid; place-items:center; position:relative; width:78px; height:78px; margin:0 auto 26px; border-radius:50%; background:#ffedcf; color:#87470a; }
-.flow-success-mark > svg:last-child { position:absolute; right:0; bottom:0; color:#335b42; background:#fffdf8; border-radius:50%; }
-.flow-success-eyebrow { color:#87470a; text-transform:uppercase; letter-spacing:.12em; font-size:11px; font-weight:650; }
-.mesh-flow .flow-success .flow-heading { margin-top:12px; }
-.flow-stay { color:#53665b; background:none; border:0; padding:10px; font-size:13px; text-decoration:underline; cursor:pointer; }
-.flow-stay:focus-visible { outline:3px solid #f7931a; outline-offset:3px; }
+
+/* Top bar and back */
+.flow-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.flow-top > a:first-child > div { display: flex; align-items: center; gap: 10px; }
+.flow-top .mesh-brand-symbol { width: 40px; height: 40px; }
+.flow-top-link { min-height: 44px; display: inline-flex; align-items: center; padding: 0 4px; font-size: 14px; font-weight: 600; color: var(--flow-ink); }
+.flow-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 14px; padding: 0; background: none; border: 0; color: var(--flow-muted); font-size: 14px; cursor: pointer; }
+.flow-back + .flow-heading { margin-top: 6px !important; }
+
+/* Big tap targets: passes, payment methods, free list */
+.flow-options { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.flow-option { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 14px 16px; border: 0; border-radius: 13px; background: #fffdf8; box-shadow: 0 0 0 1px var(--flow-line), 0 10px 20px -16px #29251f80; color: var(--flow-ink); text-align: left; font-size: 16px; cursor: pointer; }
+.flow-option:hover:not(:disabled):not(.is-static) { box-shadow: 0 0 0 1.5px var(--flow-orange), 0 10px 20px -16px #29251f80; }
+.flow-option:disabled { opacity: .55; cursor: default; }
+.flow-option.is-static { cursor: default; }
+.flow-option > span:first-of-type { flex: 1; display: grid; gap: 3px; min-width: 0; }
+.flow-option strong { font-size: 17px; font-weight: 650; }
+.flow-option small { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--flow-muted); }
+.flow-option > svg:last-child { flex: none; color: #a0907a; }
+.flow-option-price { font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.flow-save { color: #87470a !important; font-weight: 650; }
+.flow-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 18px; margin-top: 22px; }
+.flow-links button { min-height: 44px; padding: 0 2px; background: none; border: 0; color: var(--flow-muted); font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.flow-chip { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 8px 8px 8px 14px; border-radius: 999px; background: #ffedcf; color: #705130; font-size: 14px; font-weight: 600; }
+.flow-chip span { flex: 1; }
+.flow-chip button { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; }
+.flow-placeholders { display: grid; gap: 16px; margin-top: 10px; }
+.flow-placeholders span { height: 108px; border-radius: 12px; background: #f2eadc; }
+
+/* Forms */
+.flow-label { display: block; margin-top: 6px; font-size: 14px; font-weight: 600; }
+.flow-input { width: 100%; min-height: 56px; margin-top: 8px; padding: 14px 16px; border: 1px solid #c9bda9; border-radius: 11px; background: #fff; color: var(--flow-ink); font-size: 20px; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+.flow-input::placeholder { color: #b3a690; }
+.flow-error { margin: 16px 0 0; padding: 13px 15px; border: 1px solid #d7ae9b; border-radius: 10px; background: #f3e7dd; color: #773b28; font-size: 14px; line-height: 1.55; }
+.flow-help { padding: 14px 16px; background: #ffedcf; border: 1px solid #f0d9b8; border-radius: 10px; font-size: 14px; line-height: 1.6; color: #705130; }
+.flow-retry { display: grid; gap: 12px; }
+.flow-stay { display: block; margin: 6px auto 0; min-height: 44px; padding: 10px; background: none; border: 0; color: var(--flow-muted); font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+/* M-Pesa progress */
+.flow-mpesa-logo { display: block; width: 107px; height: 31px; object-fit: contain; margin-bottom: 28px; }
+.flow-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; list-style: none; padding: 0; margin: 0 0 30px; }
+.flow-steps li { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; padding-top: 13px; border-top: 2px solid var(--flow-line); color: #8a847a; font-size: 12px; line-height: 1.5; }
+.flow-steps li > span { display: grid; place-items: center; width: 23px; height: 23px; border-radius: 50%; background: #ede6da; font-size: 11px; font-weight: 650; }
+.flow-steps li[data-state="current"] { color: #87470a; border-color: var(--flow-orange); font-weight: 650; }
+.flow-steps li[data-state="current"] > span { background: #ffedcf; }
+.flow-steps li[data-state="done"] { color: #335b42; border-color: #335b42; }
+.flow-reference { margin-top: 24px; font-size: 12px; color: #687267; }
+.flow-reference summary { cursor: pointer; }
+.flow-reference p { overflow-wrap: anywhere; margin-top: 12px; }
+
+/* You're online */
+.flow-success { text-align: center; padding: 30px 22px 20px; background: #fffdf8; border: 1px solid #e8dcc8; border-radius: 22px; box-shadow: 0 16px 50px #7d572a0d; }
+.flow-success-mark { display: grid; place-items: center; position: relative; width: 78px; height: 78px; margin: 0 auto 24px; border-radius: 50%; background: #ffedcf; color: #87470a; }
+.flow-success-mark > svg:last-child { position: absolute; right: 0; bottom: 0; color: #335b42; background: #fffdf8; border-radius: 50%; }
+.flow-success-eyebrow { color: #87470a; text-transform: uppercase; letter-spacing: .12em; font-size: 11px; font-weight: 650; }
+.mesh-flow .flow-success .flow-heading { margin-top: 12px; }
 
 /* My pass */
 .pass-panel { display: grid; gap: 18px; }
@@ -56,30 +96,165 @@
 .pass-kind { display: inline-flex; align-items: center; gap: 6px; color: #335b42; font-weight: 600; }
 .pass-code { display: grid; gap: 4px; }
 .pass-code span, .pass-devices > span { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #657267; }
-.pass-code strong, .pass-big-code { font-size: 30px; letter-spacing: .08em; font-variant-numeric: tabular-nums; color: #203c32; }
-.pass-code small, .pass-add p, .pass-device-code p { color: #53665b; font-size: 13px; line-height: 1.6; margin: 0; }
+.pass-code strong { font-size: 30px; letter-spacing: .08em; font-variant-numeric: tabular-nums; color: #203c32; }
+.pass-code small, .pass-add p { color: var(--flow-muted); font-size: 13px; line-height: 1.6; margin: 0; }
 .pass-devices ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .pass-devices li { display: flex; justify-content: space-between; align-items: center; min-height: 40px; border-bottom: 1px solid #e6e8df; }
 .pass-icon-button { border: 0; background: transparent; color: #a33d32; width: 40px; height: 40px; display: grid; place-items: center; cursor: pointer; }
 .pass-add { display: grid; gap: 8px; }
-.pass-add label, .pass-device-code h2 { font-weight: 600; font-size: 15px; margin: 0; }
-.pass-add > div { display: flex; gap: 8px; }
+.pass-add label { font-weight: 600; font-size: 15px; margin: 0; }
+.pass-add > div { display: flex; gap: 8px; align-items: stretch; }
 .pass-add input { flex: 1; min-width: 0; }
+.pass-add .flow-action { width: auto; margin-top: 8px; }
 .pass-replace { display: grid; gap: 6px; }
 
+/* Device code */
+.flow-device-code { display: grid; justify-items: center; text-align: center; }
+.flow-device-qr { width: min(100%, 240px); padding: 10px; background: #fff; border: 1px solid #d8dbce; border-radius: 12px; }
+.flow-device-qr svg, .flow-lightning-code svg { display: block; width: 100%; height: auto; }
+.flow-big-code { margin-top: 16px; font-size: 38px; letter-spacing: .1em; font-variant-numeric: tabular-nums; }
+
 /* Install Mesh */
-.install-benefits { list-style: none; padding: 0; margin: 18px 0 24px; display: grid; gap: 14px; }
-.install-benefits li { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; color: #53665b; line-height: 1.6; }
-.install-benefits strong { display: block; color: #203c32; }
-.install-benefits svg { flex: none; margin-top: 3px; color: #335b42; }
-.install-steps { display: grid; gap: 10px; padding-left: 0; list-style: none; font-size: 14px; }
+.install-steps { display: grid; gap: 10px; padding-left: 0; list-style: none; font-size: 15px; }
 .install-steps li, .install-step { display: flex; align-items: center; gap: 10px; }
 
 /* Bitcoin (Lightning) invoice */
-.flow-lightning { display: grid; gap: 12px; }
+.flow-lightning { display: grid; gap: 10px; }
+.flow-lightning .flow-heading { margin-bottom: 4px; }
 .flow-lightning-amount { display: grid; gap: 2px; margin: 0; }
 .flow-lightning-amount strong { font-size: 26px; }
-.flow-lightning-amount span { font-size: 14px; color: #53665b; }
-.flow-lightning-qr { width: min(100%, 280px); margin: 4px auto; padding: 10px; background: #fff; border: 1px solid #d8dbce; border-radius: 10px; }
-.flow-lightning-qr svg { display: block; width: 100%; height: auto; }
-.flow-lightning .flow-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.flow-lightning-amount span { font-size: 14px; color: var(--flow-muted); }
+.flow-lightning-qr { position: relative; display: grid; gap: 6px; width: min(100%, 290px); margin: 8px auto 0; padding: 12px 12px 10px; background: #fff; border: 2px solid #d8dbce; border-radius: 14px; color: var(--flow-ink); cursor: pointer; }
+.flow-lightning-qr[data-copied="true"] { border-color: #335b42; }
+.flow-lightning-qr:disabled { opacity: .35; cursor: default; }
+.flow-lightning-tap { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; font-weight: 650; }
+.flow-lightning .flow-copy { text-align: center; margin: 4px 0; }
+.flow-lightning .flow-action { margin-top: 4px; }
+.flow-lightning .flow-note { text-align: center; margin: 4px 0; }
+
+/* Internet passes: pocket tickets in four printed materials, by price.
+   1 under KES 50: orange guilloche. 2 under 100: lime mesh lattice.
+   3 under 300: deep green with gold rosettes. 4 from 300: black with holo foil.
+   The whole ticket is the button. Patterns: scripts/mesh/ticket-patterns.py. */
+.mesh-flow {
+  --ticket-waves: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100'%3E%3Cpath d='M0.0 50.0L5.0 57.2L10.0 63.5L15.0 68.0L20.0 70.3L25.0 70.5L30.0 69.0L35.0 66.4L40.0 63.7L45.0 61.7L50.0 61.0L55.0 61.7L60.0 63.7L65.0 66.4L70.0 69.0L75.0 70.5L80.0 70.3L85.0 68.0L90.0 63.5L95.0 57.2L100.0 50.0L105.0 42.8L110.0 36.5L115.0 32.0L120.0 29.7L125.0 29.5L130.0 31.0L135.0 33.6L140.0 36.3L145.0 38.3L150.0 39.0L155.0 38.3L160.0 36.3L165.0 33.6L170.0 31.0L175.0 29.5L180.0 29.7L185.0 32.0L190.0 36.5L195.0 42.8L200.0 50.0 M0.0 71.7L5.0 73.7L10.0 73.4L15.0 71.3L20.0 68.2L25.0 64.8L30.0 62.0L35.0 60.5L40.0 60.5L45.0 61.7L50.0 63.8L55.0 65.8L60.0 66.9L65.0 66.3L70.0 63.8L75.0 59.1L80.0 52.8L85.0 45.7L90.0 38.6L95.0 32.5L100.0 28.3L105.0 26.3L110.0 26.6L115.0 28.7L120.0 31.8L125.0 35.2L130.0 38.0L135.0 39.5L140.0 39.5L145.0 38.3L150.0 36.2L155.0 34.2L160.0 33.1L165.0 33.7L170.0 36.2L175.0 40.9L180.0 47.2L185.0 54.3L190.0 61.4L195.0 67.5L200.0 71.7 M0.0 72.8L5.0 68.9L10.0 64.8L15.0 61.3L20.0 59.0L25.0 58.2L30.0 58.8L35.0 60.3L40.0 61.9L45.0 62.6L50.0 61.9L55.0 59.3L60.0 54.7L65.0 48.5L70.0 41.5L75.0 34.7L80.0 29.0L85.0 25.2L90.0 23.7L95.0 24.5L100.0 27.2L105.0 31.1L110.0 35.2L115.0 38.7L120.0 41.0L125.0 41.8L130.0 41.2L135.0 39.7L140.0 38.1L145.0 37.4L150.0 38.1L155.0 40.7L160.0 45.3L165.0 51.5L170.0 58.5L175.0 65.3L180.0 71.0L185.0 74.8L190.0 76.3L195.0 75.5L200.0 72.8 M0.0 59.5L5.0 56.6L10.0 55.2L15.0 55.2L20.0 56.3L25.0 57.5L30.0 58.1L35.0 57.4L40.0 54.8L45.0 50.4L50.0 44.5L55.0 37.9L60.0 31.5L65.0 26.2L70.0 22.9L75.0 22.0L80.0 23.4L85.0 26.8L90.0 31.4L95.0 36.2L100.0 40.5L105.0 43.4L110.0 44.8L115.0 44.8L120.0 43.7L125.0 42.5L130.0 41.9L135.0 42.6L140.0 45.2L145.0 49.6L150.0 55.5L155.0 62.1L160.0 68.5L165.0 73.8L170.0 77.1L175.0 78.0L180.0 76.6L185.0 73.2L190.0 68.6L195.0 63.8L200.0 59.5 M0.0 51.1L5.0 51.8L10.0 52.9L15.0 53.5L20.0 52.8L25.0 50.5L30.0 46.4L35.0 41.0L40.0 34.9L45.0 29.0L50.0 24.3L55.0 21.6L60.0 21.3L65.0 23.4L70.0 27.4L75.0 32.7L80.0 38.2L85.0 43.1L90.0 46.7L95.0 48.6L100.0 48.9L105.0 48.2L110.0 47.1L115.0 46.5L120.0 47.2L125.0 49.5L130.0 53.6L135.0 59.0L140.0 65.1L145.0 71.0L150.0 75.7L155.0 78.4L160.0 78.7L165.0 76.6L170.0 72.6L175.0 67.3L180.0 61.8L185.0 56.9L190.0 53.3L195.0 51.4L200.0 51.1 M0.0 48.9L5.0 48.6L10.0 46.7L15.0 43.1L20.0 38.2L25.0 32.7L30.0 27.4L35.0 23.4L40.0 21.3L45.0 21.6L50.0 24.3L55.0 29.0L60.0 34.9L65.0 41.0L70.0 46.4L75.0 50.5L80.0 52.8L85.0 53.5L90.0 52.9L95.0 51.8L100.0 51.1L105.0 51.4L110.0 53.3L115.0 56.9L120.0 61.8L125.0 67.3L130.0 72.6L135.0 76.6L140.0 78.7L145.0 78.4L150.0 75.7L155.0 71.0L160.0 65.1L165.0 59.0L170.0 53.6L175.0 49.5L180.0 47.2L185.0 46.5L190.0 47.1L195.0 48.2L200.0 48.9 M0.0 40.5L5.0 36.2L10.0 31.4L15.0 26.8L20.0 23.4L25.0 22.0L30.0 22.9L35.0 26.2L40.0 31.5L45.0 37.9L50.0 44.5L55.0 50.4L60.0 54.8L65.0 57.4L70.0 58.1L75.0 57.5L80.0 56.3L85.0 55.2L90.0 55.2L95.0 56.6L100.0 59.5L105.0 63.8L110.0 68.6L115.0 73.2L120.0 76.6L125.0 78.0L130.0 77.1L135.0 73.8L140.0 68.5L145.0 62.1L150.0 55.5L155.0 49.6L160.0 45.2L165.0 42.6L170.0 41.9L175.0 42.5L180.0 43.7L185.0 44.8L190.0 44.8L195.0 43.4L200.0 40.5 M0.0 27.2L5.0 24.5L10.0 23.7L15.0 25.2L20.0 29.0L25.0 34.7L30.0 41.5L35.0 48.5L40.0 54.7L45.0 59.3L50.0 61.9L55.0 62.6L60.0 61.9L65.0 60.3L70.0 58.8L75.0 58.2L80.0 59.0L85.0 61.3L90.0 64.8L95.0 68.9L100.0 72.8L105.0 75.5L110.0 76.3L115.0 74.8L120.0 71.0L125.0 65.3L130.0 58.5L135.0 51.5L140.0 45.3L145.0 40.7L150.0 38.1L155.0 37.4L160.0 38.1L165.0 39.7L170.0 41.2L175.0 41.8L180.0 41.0L185.0 38.7L190.0 35.2L195.0 31.1L200.0 27.2 M0.0 28.3L5.0 32.5L10.0 38.6L15.0 45.7L20.0 52.8L25.0 59.1L30.0 63.8L35.0 66.3L40.0 66.9L45.0 65.8L50.0 63.8L55.0 61.7L60.0 60.5L65.0 60.5L70.0 62.0L75.0 64.8L80.0 68.2L85.0 71.3L90.0 73.4L95.0 73.7L100.0 71.7L105.0 67.5L110.0 61.4L115.0 54.3L120.0 47.2L125.0 40.9L130.0 36.2L135.0 33.7L140.0 33.1L145.0 34.2L150.0 36.2L155.0 38.3L160.0 39.5L165.0 39.5L170.0 38.0L175.0 35.2L180.0 31.8L185.0 28.7L190.0 26.6L195.0 26.3L200.0 28.3' fill='none' stroke='%23ffffff' stroke-opacity='0.42' stroke-width='.7'/%3E%3C/svg%3E");
+  --ticket-lattice: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26'%3E%3Cg fill='%23203c32' fill-opacity='0.2' stroke='%23203c32' stroke-opacity='0.11000000000000001' stroke-width='.7'%3E%3Cpath d='M0 0L26 26M26 0L0 26' fill='none'/%3E%3Ccircle cx='0' cy='0' r='1.6'/%3E%3Ccircle cx='26' cy='0' r='1.6'/%3E%3Ccircle cx='0' cy='26' r='1.6'/%3E%3Ccircle cx='26' cy='26' r='1.6'/%3E%3Ccircle cx='13.0' cy='13.0' r='2.1'/%3E%3C/g%3E%3C/svg%3E");
+  --ticket-rosette: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cpath d='M117.6 60.0L117.6 59.5L117.5 59.0L117.3 58.6L117.1 58.1L116.9 57.6L116.6 57.1L116.2 56.7L115.8 56.2L115.3 55.8L114.8 55.3L114.2 54.9L113.6 54.5L112.9 54.1L112.1 53.7L111.3 53.3L110.5 52.9L109.6 52.6L108.7 52.2L107.7 51.9L106.6 51.6L105.5 51.3L104.4 51.0L103.3 50.8L102.0 50.5L100.8 50.3L99.5 50.1L98.2 49.9L96.8 49.8L95.4 49.6L94.0 49.5L92.5 49.4L91.0 49.3L89.5 49.3L88.0 49.3L86.4 49.3L84.8 49.3L83.2 49.3L81.5 49.4L79.9 49.5L78.2 49.6L76.5 49.8L74.8 49.9L73.1 50.1L71.3 50.3L69.6 50.6L67.8 50.8L66.1 51.1L64.3 51.4L62.6 51.8L60.8 52.1L59.1 52.5L57.3 52.9L55.6 53.3L53.9 53.8L52.1 54.2L50.4 54.7L48.7 55.2L47.0 55.7L45.4 56.3L43.7 56.8L42.1 57.4L40.5 58.0L38.9 58.6L37.3 59.3L35.8 59.9L34.3 60.5L32.8 61.2L31.4 61.9L30.0 62.6L28.6 63.3L27.2 64.0L25.9 64.7L24.6 65.4L23.4 66.1L22.2 66.9L21.1 67.6L20.0 68.3L18.9 69.1L17.9 69.8L16.9 70.6L16.0 71.3L15.1 72.0L14.2 72.8L13.4 73.5L12.7 74.2L12.0 74.9L11.4 75.6L10.8 76.3L10.2 77.0L9.7 77.7L9.3 78.4L8.9 79.0L8.6 79.7L8.3 80.3L8.1 80.9L7.9 81.5L7.8 82.1L7.7 82.6L7.7 83.1L7.7 83.7L7.8 84.1L7.9 84.6L8.1 85.1L8.4 85.5L8.7 85.9L9.0 86.2L9.4 86.6L9.8 86.9L10.3 87.2L10.9 87.4L11.5 87.6L12.1 87.8L12.8 88.0L13.5 88.1L14.2 88.2L15.0 88.3L15.9 88.3L16.8 88.3L17.7 88.3L18.7 88.2L19.7 88.1L20.7 88.0L21.8 87.8L22.9 87.6L24.0 87.3L25.2 87.0L26.4 86.7L27.6 86.4L28.9 86.0L30.2 85.6L31.5 85.1L32.8 84.6L34.1 84.1L35.5 83.6L36.9 83.0L38.3 82.4L39.7 81.7L41.1 81.0L42.5 80.3L44.0 79.5L45.4 78.8L46.9 77.9L48.3 77.1L49.8 76.2L51.3 75.3L52.7 74.4L54.2 73.5L55.7 72.5L57.1 71.5L58.6 70.5L60.0 69.4L61.4 68.4L62.9 67.3L64.3 66.2L65.7 65.1L67.1 63.9L68.4 62.8L69.8 61.6L71.1 60.4L72.4 59.2L73.7 58.0L75.0 56.8L76.2 55.6L77.4 54.4L78.6 53.1L79.8 51.9L80.9 50.7L82.0 49.4L83.1 48.2L84.1 46.9L85.1 45.7L86.1 44.5L87.0 43.3L87.9 42.0L88.8 40.8L89.6 39.6L90.4 38.4L91.2 37.3L91.9 36.1L92.6 35.0L93.2 33.8L93.8 32.7L94.3 31.6L94.9 30.6L95.3 29.5L95.8 28.5L96.2 27.5L96.5 26.5L96.8 25.6L97.1 24.7L97.3 23.8L97.5 22.9L97.6 22.1L97.7 21.3L97.8 20.6L97.8 19.9L97.8 19.2L97.7 18.5L97.6 17.9L97.5 17.4L97.3 16.9L97.1 16.4L96.8 15.9L96.5 15.5L96.2 15.2L95.8 14.9L95.4 14.6L95.0 14.4L94.5 14.2L94.0 14.1L93.5 14.0L92.9 14.0L92.3 14.0L91.7 14.1L91.0 14.2L90.3 14.3L89.6 14.5L88.9 14.8L88.1 15.1L87.3 15.4L86.5 15.8L85.7 16.3L84.9 16.7L84.0 17.3L83.1 17.9L82.2 18.5L81.3 19.2L80.4 19.9L79.5 20.6L78.5 21.5L77.6 22.3L76.6 23.2L75.7 24.1L74.7 25.1L73.7 26.1L72.7 27.2L71.7 28.3L70.7 29.4L69.8 30.6L68.8 31.8L67.8 33.0L66.8 34.3L65.8 35.6L64.9 37.0L63.9 38.3L63.0 39.7L62.0 41.1L61.1 42.6L60.2 44.1L59.3 45.6L58.4 47.1L57.5 48.6L56.6 50.2L55.8 51.7L54.9 53.3L54.1 54.9L53.3 56.5L52.6 58.1L51.8 59.8L51.1 61.4L50.4 63.0L49.7 64.7L49.0 66.3L48.4 68.0L47.8 69.6L47.2 71.2L46.7 72.9L46.1 74.5L45.6 76.1L45.2 77.7L44.7 79.3L44.3 80.9L43.9 82.4L43.5 84.0L43.2 85.5L42.9 87.0L42.6 88.5L42.3 90.0L42.1 91.4L41.9 92.8L41.8 94.2L41.6 95.6L41.5 96.9L41.4 98.2L41.4 99.4L41.4 100.6L41.4 101.8L41.4 103.0L41.5 104.1L41.5 105.1L41.7 106.1L41.8 107.1L41.9 108.0L42.1 108.9L42.3 109.8L42.6 110.6L42.8 111.3L43.1 112.0L43.4 112.6L43.7 113.2L44.1 113.8L44.4 114.3L44.8 114.7L45.2 115.1L45.6 115.4L46.0 115.7L46.5 115.9L46.9 116.1L47.4 116.2L47.9 116.3L48.4 116.3L48.9 116.2L49.4 116.1L49.9 115.9L50.4 115.7L51.0 115.4L51.5 115.1L52.0 114.7L52.6 114.2L53.1 113.8L53.7 113.2L54.2 112.6L54.8 111.9L55.3 111.2L55.9 110.5L56.4 109.6L57.0 108.8L57.5 107.9L58.0 106.9L58.6 105.9L59.1 104.8L59.6 103.7L60.1 102.6L60.6 101.4L61.1 100.2L61.5 98.9L62.0 97.6L62.4 96.3L62.8 94.9L63.3 93.4L63.6 92.0L64.0 90.5L64.4 89.0L64.7 87.4L65.1 85.9L65.4 84.3L65.7 82.6L65.9 81.0L66.2 79.3L66.4 77.6L66.6 75.9L66.8 74.2L67.0 72.4L67.1 70.7L67.2 68.9L67.3 67.1L67.4 65.4L67.5 63.6L67.5 61.8L67.5 60.0L67.5 58.2L67.5 56.4L67.4 54.6L67.3 52.9L67.2 51.1L67.1 49.3L67.0 47.6L66.8 45.8L66.6 44.1L66.4 42.4L66.2 40.7L65.9 39.0L65.7 37.4L65.4 35.7L65.1 34.1L64.7 32.6L64.4 31.0L64.0 29.5L63.6 28.0L63.3 26.6L62.8 25.1L62.4 23.7L62.0 22.4L61.5 21.1L61.1 19.8L60.6 18.6L60.1 17.4L59.6 16.3L59.1 15.2L58.6 14.1L58.0 13.1L57.5 12.1L57.0 11.2L56.4 10.4L55.9 9.5L55.3 8.8L54.8 8.1L54.2 7.4L53.7 6.8L53.1 6.2L52.6 5.8L52.0 5.3L51.5 4.9L51.0 4.6L50.4 4.3L49.9 4.1L49.4 3.9L48.9 3.8L48.4 3.7L47.9 3.7L47.4 3.8L46.9 3.9L46.5 4.1L46.0 4.3L45.6 4.6L45.2 4.9L44.8 5.3L44.4 5.7L44.1 6.2L43.7 6.8L43.4 7.4L43.1 8.0L42.8 8.7L42.6 9.4L42.3 10.2L42.1 11.1L41.9 12.0L41.8 12.9L41.7 13.9L41.5 14.9L41.5 15.9L41.4 17.0L41.4 18.2L41.4 19.4L41.4 20.6L41.4 21.8L41.5 23.1L41.6 24.4L41.8 25.8L41.9 27.2L42.1 28.6L42.3 30.0L42.6 31.5L42.9 33.0L43.2 34.5L43.5 36.0L43.9 37.6L44.3 39.1L44.7 40.7L45.2 42.3L45.6 43.9L46.1 45.5L46.7 47.1L47.2 48.8L47.8 50.4L48.4 52.0L49.0 53.7L49.7 55.3L50.4 57.0L51.1 58.6L51.8 60.2L52.6 61.9L53.3 63.5L54.1 65.1L54.9 66.7L55.8 68.3L56.6 69.8L57.5 71.4L58.4 72.9L59.3 74.4L60.2 75.9L61.1 77.4L62.0 78.9L63.0 80.3L63.9 81.7L64.9 83.0L65.8 84.4L66.8 85.7L67.8 87.0L68.8 88.2L69.8 89.4L70.7 90.6L71.7 91.7L72.7 92.8L73.7 93.9L74.7 94.9L75.7 95.9L76.6 96.8L77.6 97.7L78.5 98.5L79.5 99.4L80.4 100.1L81.3 100.8L82.2 101.5L83.1 102.1L84.0 102.7L84.9 103.3L85.7 103.7L86.5 104.2L87.3 104.6L88.1 104.9L88.9 105.2L89.6 105.5L90.3 105.7L91.0 105.8L91.7 105.9L92.3 106.0L92.9 106.0L93.5 106.0L94.0 105.9L94.5 105.8L95.0 105.6L95.4 105.4L95.8 105.1L96.2 104.8L96.5 104.5L96.8 104.1L97.1 103.6L97.3 103.1L97.5 102.6L97.6 102.1L97.7 101.5L97.8 100.8L97.8 100.1L97.8 99.4L97.7 98.7L97.6 97.9L97.5 97.1L97.3 96.2L97.1 95.3L96.8 94.4L96.5 93.5L96.2 92.5L95.8 91.5L95.3 90.5L94.9 89.4L94.3 88.4L93.8 87.3L93.2 86.2L92.6 85.0L91.9 83.9L91.2 82.7L90.4 81.6L89.6 80.4L88.8 79.2L87.9 78.0L87.0 76.7L86.1 75.5L85.1 74.3L84.1 73.1L83.1 71.8L82.0 70.6L80.9 69.3L79.8 68.1L78.6 66.9L77.4 65.6L76.2 64.4L75.0 63.2L73.7 62.0L72.4 60.8L71.1 59.6L69.8 58.4L68.4 57.2L67.1 56.1L65.7 54.9L64.3 53.8L62.9 52.7L61.4 51.6L60.0 50.6L58.6 49.5L57.1 48.5L55.7 47.5L54.2 46.5L52.7 45.6L51.3 44.7L49.8 43.8L48.3 42.9L46.9 42.1L45.4 41.2L44.0 40.5L42.5 39.7L41.1 39.0L39.7 38.3L38.3 37.6L36.9 37.0L35.5 36.4L34.1 35.9L32.8 35.4L31.5 34.9L30.2 34.4L28.9 34.0L27.6 33.6L26.4 33.3L25.2 33.0L24.0 32.7L22.9 32.4L21.8 32.2L20.7 32.0L19.7 31.9L18.7 31.8L17.7 31.7L16.8 31.7L15.9 31.7L15.0 31.7L14.2 31.8L13.5 31.9L12.8 32.0L12.1 32.2L11.5 32.4L10.9 32.6L10.3 32.8L9.8 33.1L9.4 33.4L9.0 33.8L8.7 34.1L8.4 34.5L8.1 34.9L7.9 35.4L7.8 35.9L7.7 36.3L7.7 36.9L7.7 37.4L7.8 37.9L7.9 38.5L8.1 39.1L8.3 39.7L8.6 40.3L8.9 41.0L9.3 41.6L9.7 42.3L10.2 43.0L10.8 43.7L11.4 44.4L12.0 45.1L12.7 45.8L13.4 46.5L14.2 47.2L15.1 48.0L16.0 48.7L16.9 49.4L17.9 50.2L18.9 50.9L20.0 51.7L21.1 52.4L22.2 53.1L23.4 53.9L24.6 54.6L25.9 55.3L27.2 56.0L28.6 56.7L30.0 57.4L31.4 58.1L32.8 58.8L34.3 59.5L35.8 60.1L37.3 60.7L38.9 61.4L40.5 62.0L42.1 62.6L43.7 63.2L45.4 63.7L47.0 64.3L48.7 64.8L50.4 65.3L52.1 65.8L53.9 66.2L55.6 66.7L57.3 67.1L59.1 67.5L60.8 67.9L62.6 68.2L64.3 68.6L66.1 68.9L67.8 69.2L69.6 69.4L71.3 69.7L73.1 69.9L74.8 70.1L76.5 70.2L78.2 70.4L79.9 70.5L81.5 70.6L83.2 70.7L84.8 70.7L86.4 70.7L88.0 70.7L89.5 70.7L91.0 70.7L92.5 70.6L94.0 70.5L95.4 70.4L96.8 70.2L98.2 70.1L99.5 69.9L100.8 69.7L102.0 69.5L103.3 69.2L104.4 69.0L105.5 68.7L106.6 68.4L107.7 68.1L108.7 67.8L109.6 67.4L110.5 67.1L111.3 66.7L112.1 66.3L112.9 65.9L113.6 65.5L114.2 65.1L114.8 64.7L115.3 64.2L115.8 63.8L116.2 63.3L116.6 62.9L116.9 62.4L117.1 61.9L117.3 61.4L117.5 61.0L117.6 60.5L117.6 60.0' fill='none' stroke='%23d8b45a' stroke-opacity='0.75' stroke-width='.6'/%3E%3C/svg%3E");
+  --ticket-lines: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='40'%3E%3Cpath d='M0.0 20.0L5.0 22.3L10.0 24.3L15.0 25.7L20.0 26.4L25.0 26.4L30.0 25.8L35.0 24.9L40.0 23.9L45.0 23.3L50.0 23.0L55.0 23.3L60.0 23.9L65.0 24.9L70.0 25.8L75.0 26.4L80.0 26.4L85.0 25.7L90.0 24.3L95.0 22.3L100.0 20.0L105.0 17.7L110.0 15.7L115.0 14.3L120.0 13.6L125.0 13.6L130.0 14.2L135.0 15.1L140.0 16.1L145.0 16.7L150.0 17.0L155.0 16.7L160.0 16.1L165.0 15.1L170.0 14.2L175.0 13.6L180.0 13.6L185.0 14.3L190.0 15.7L195.0 17.7L200.0 20.0 M0.0 24.9L5.0 26.4L10.0 27.0L15.0 27.0L20.0 26.3L25.0 25.3L30.0 24.3L35.0 23.4L40.0 22.9L45.0 23.0L50.0 23.5L55.0 24.3L60.0 25.1L65.0 25.7L70.0 25.7L75.0 25.0L80.0 23.6L85.0 21.6L90.0 19.3L95.0 17.0L100.0 15.1L105.0 13.6L110.0 13.0L115.0 13.0L120.0 13.7L125.0 14.7L130.0 15.7L135.0 16.6L140.0 17.1L145.0 17.0L150.0 16.5L155.0 15.7L160.0 14.9L165.0 14.3L170.0 14.3L175.0 15.0L180.0 16.4L185.0 18.4L190.0 20.7L195.0 23.0L200.0 24.9 M0.0 27.6L5.0 27.5L10.0 26.8L15.0 25.7L20.0 24.5L25.0 23.4L30.0 22.8L35.0 22.7L40.0 23.0L45.0 23.7L50.0 24.4L55.0 24.9L60.0 24.9L65.0 24.2L70.0 22.8L75.0 20.9L80.0 18.7L85.0 16.4L90.0 14.4L95.0 13.0L100.0 12.4L105.0 12.5L110.0 13.2L115.0 14.3L120.0 15.5L125.0 16.6L130.0 17.2L135.0 17.3L140.0 17.0L145.0 16.3L150.0 15.6L155.0 15.1L160.0 15.1L165.0 15.8L170.0 17.2L175.0 19.1L180.0 21.3L185.0 23.6L190.0 25.6L195.0 27.0L200.0 27.6 M0.0 27.2L5.0 25.9L10.0 24.6L15.0 23.4L20.0 22.5L25.0 22.2L30.0 22.4L35.0 23.0L40.0 23.6L45.0 24.1L50.0 24.0L55.0 23.4L60.0 22.1L65.0 20.2L70.0 18.0L75.0 15.8L80.0 13.9L85.0 12.5L90.0 11.9L95.0 12.0L100.0 12.8L105.0 14.1L110.0 15.4L115.0 16.6L120.0 17.5L125.0 17.8L130.0 17.6L135.0 17.0L140.0 16.4L145.0 15.9L150.0 16.0L155.0 16.6L160.0 17.9L165.0 19.8L170.0 22.0L175.0 24.2L180.0 26.1L185.0 27.5L190.0 28.1L195.0 28.0L200.0 27.2 M0.0 24.5L5.0 23.2L10.0 22.2L15.0 21.7L20.0 21.8L25.0 22.2L30.0 22.8L35.0 23.2L40.0 23.2L45.0 22.6L50.0 21.4L55.0 19.6L60.0 17.5L65.0 15.3L70.0 13.4L75.0 12.1L80.0 11.5L85.0 11.7L90.0 12.6L95.0 13.9L100.0 15.5L105.0 16.8L110.0 17.8L115.0 18.3L120.0 18.2L125.0 17.8L130.0 17.2L135.0 16.8L140.0 16.8L145.0 17.4L150.0 18.6L155.0 20.4L160.0 22.5L165.0 24.7L170.0 26.6L175.0 27.9L180.0 28.5L185.0 28.3L190.0 27.4L195.0 26.1L200.0 24.5 M0.0 21.8L5.0 21.1L10.0 21.0L15.0 21.4L20.0 21.9L25.0 22.3L30.0 22.3L35.0 21.8L40.0 20.7L45.0 19.0L50.0 16.9L55.0 14.8L60.0 13.0L65.0 11.8L70.0 11.2L75.0 11.5L80.0 12.5L85.0 13.9L90.0 15.6L95.0 17.1L100.0 18.2L105.0 18.9L110.0 19.0L115.0 18.6L120.0 18.1L125.0 17.7L130.0 17.7L135.0 18.2L140.0 19.3L145.0 21.0L150.0 23.1L155.0 25.2L160.0 27.0L165.0 28.2L170.0 28.8L175.0 28.5L180.0 27.5L185.0 26.1L190.0 24.4L195.0 22.9L200.0 21.8 M0.0 20.3L5.0 20.5L10.0 20.9L15.0 21.3L20.0 21.4L25.0 21.0L30.0 20.0L35.0 18.4L40.0 16.5L45.0 14.5L50.0 12.7L55.0 11.5L60.0 11.1L65.0 11.4L70.0 12.4L75.0 14.0L80.0 15.8L85.0 17.4L90.0 18.7L95.0 19.5L100.0 19.7L105.0 19.5L110.0 19.1L115.0 18.7L120.0 18.6L125.0 19.0L130.0 20.0L135.0 21.6L140.0 23.5L145.0 25.5L150.0 27.3L155.0 28.5L160.0 28.9L165.0 28.6L170.0 27.6L175.0 26.0L180.0 24.2L185.0 22.6L190.0 21.3L195.0 20.5L200.0 20.3 M0.0 20.0L5.0 20.4L10.0 20.6L15.0 20.2L20.0 19.3L25.0 17.9L30.0 16.1L35.0 14.2L40.0 12.5L45.0 11.4L50.0 11.0L55.0 11.4L60.0 12.5L65.0 14.2L70.0 16.1L75.0 17.9L80.0 19.3L85.0 20.2L90.0 20.6L95.0 20.4L100.0 20.0L105.0 19.6L110.0 19.4L115.0 19.8L120.0 20.7L125.0 22.1L130.0 23.9L135.0 25.8L140.0 27.5L145.0 28.6L150.0 29.0L155.0 28.6L160.0 27.5L165.0 25.8L170.0 23.9L175.0 22.1L180.0 20.7L185.0 19.8L190.0 19.4L195.0 19.6L200.0 20.0 M0.0 19.7L5.0 19.5L10.0 18.7L15.0 17.4L20.0 15.8L25.0 14.0L30.0 12.4L35.0 11.4L40.0 11.1L45.0 11.5L50.0 12.7L55.0 14.5L60.0 16.5L65.0 18.4L70.0 20.0L75.0 21.0L80.0 21.4L85.0 21.3L90.0 20.9L95.0 20.5L100.0 20.3L105.0 20.5L110.0 21.3L115.0 22.6L120.0 24.2L125.0 26.0L130.0 27.6L135.0 28.6L140.0 28.9L145.0 28.5L150.0 27.3L155.0 25.5L160.0 23.5L165.0 21.6L170.0 20.0L175.0 19.0L180.0 18.6L185.0 18.7L190.0 19.1L195.0 19.5L200.0 19.7 M0.0 18.2L5.0 17.1L10.0 15.6L15.0 13.9L20.0 12.5L25.0 11.5L30.0 11.2L35.0 11.8L40.0 13.0L45.0 14.8L50.0 16.9L55.0 19.0L60.0 20.7L65.0 21.8L70.0 22.3L75.0 22.3L80.0 21.9L85.0 21.4L90.0 21.0L95.0 21.1L100.0 21.8L105.0 22.9L110.0 24.4L115.0 26.1L120.0 27.5L125.0 28.5L130.0 28.8L135.0 28.2L140.0 27.0L145.0 25.2L150.0 23.1L155.0 21.0L160.0 19.3L165.0 18.2L170.0 17.7L175.0 17.7L180.0 18.1L185.0 18.6L190.0 19.0L195.0 18.9L200.0 18.2 M0.0 15.5L5.0 13.9L10.0 12.6L15.0 11.7L20.0 11.5L25.0 12.1L30.0 13.4L35.0 15.3L40.0 17.5L45.0 19.6L50.0 21.4L55.0 22.6L60.0 23.2L65.0 23.2L70.0 22.8L75.0 22.2L80.0 21.8L85.0 21.7L90.0 22.2L95.0 23.2L100.0 24.5L105.0 26.1L110.0 27.4L115.0 28.3L120.0 28.5L125.0 27.9L130.0 26.6L135.0 24.7L140.0 22.5L145.0 20.4L150.0 18.6L155.0 17.4L160.0 16.8L165.0 16.8L170.0 17.2L175.0 17.8L180.0 18.2L185.0 18.3L190.0 17.8L195.0 16.8L200.0 15.5 M0.0 12.8L5.0 12.0L10.0 11.9L15.0 12.5L20.0 13.9L25.0 15.8L30.0 18.0L35.0 20.2L40.0 22.1L45.0 23.4L50.0 24.0L55.0 24.1L60.0 23.6L65.0 23.0L70.0 22.4L75.0 22.2L80.0 22.5L85.0 23.4L90.0 24.6L95.0 25.9L100.0 27.2L105.0 28.0L110.0 28.1L115.0 27.5L120.0 26.1L125.0 24.2L130.0 22.0L135.0 19.8L140.0 17.9L145.0 16.6L150.0 16.0L155.0 15.9L160.0 16.4L165.0 17.0L170.0 17.6L175.0 17.8L180.0 17.5L185.0 16.6L190.0 15.4L195.0 14.1L200.0 12.8 M0.0 12.4L5.0 13.0L10.0 14.4L15.0 16.4L20.0 18.7L25.0 20.9L30.0 22.8L35.0 24.2L40.0 24.9L45.0 24.9L50.0 24.4L55.0 23.7L60.0 23.0L65.0 22.7L70.0 22.8L75.0 23.4L80.0 24.5L85.0 25.7L90.0 26.8L95.0 27.5L100.0 27.6L105.0 27.0L110.0 25.6L115.0 23.6L120.0 21.3L125.0 19.1L130.0 17.2L135.0 15.8L140.0 15.1L145.0 15.1L150.0 15.6L155.0 16.3L160.0 17.0L165.0 17.3L170.0 17.2L175.0 16.6L180.0 15.5L185.0 14.3L190.0 13.2L195.0 12.5L200.0 12.4 M0.0 15.1L5.0 17.0L10.0 19.3L15.0 21.6L20.0 23.6L25.0 25.0L30.0 25.7L35.0 25.7L40.0 25.1L45.0 24.3L50.0 23.5L55.0 23.0L60.0 22.9L65.0 23.4L70.0 24.3L75.0 25.3L80.0 26.3L85.0 27.0L90.0 27.0L95.0 26.4L100.0 24.9L105.0 23.0L110.0 20.7L115.0 18.4L120.0 16.4L125.0 15.0L130.0 14.3L135.0 14.3L140.0 14.9L145.0 15.7L150.0 16.5L155.0 17.0L160.0 17.1L165.0 16.6L170.0 15.7L175.0 14.7L180.0 13.7L185.0 13.0L190.0 13.0L195.0 13.6L200.0 15.1' fill='none' stroke='%23ffffff' stroke-opacity='0.09' stroke-width='.7'/%3E%3C/svg%3E");
+}
+.flow-tickets { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 16px; }
+.flow-ticket { --stub: 92px; --base: #f7931a; --ink: #29251f; --frame: rgba(41, 37, 31, .32); --perf: rgba(41, 37, 31, .45); --label: #6b3a06; --pattern: var(--ticket-waves); --pattern-size: 200px 100px;
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) var(--stub); width: 100%; min-height: 108px; padding: 0; border: 0; border-radius: 12px;
+  background: linear-gradient(var(--perf) 55%, transparent 0) right calc(var(--stub) - 1px) top 10px / 1.5px 8px repeat-y, var(--pattern) 0 0 / var(--pattern-size), var(--base);
+  color: var(--ink); text-align: left; cursor: pointer; box-shadow: 0 1px 0 rgba(41, 37, 31, .1), 0 14px 26px -18px rgba(41, 37, 31, .75); transition: transform .14s ease, box-shadow .14s ease; }
+.flow-ticket::before, .flow-ticket::after { content: ""; position: absolute; right: calc(var(--stub) - 10px); width: 18px; height: 18px; border-radius: 50%; background: var(--flow-paper); }
+.flow-ticket::before { top: -9px; } .flow-ticket::after { bottom: -9px; }
+.flow-ticket:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 1px 0 rgba(41, 37, 31, .1), 0 20px 30px -18px rgba(41, 37, 31, .8); }
+.flow-ticket:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 rgba(41, 37, 31, .1), 0 6px 12px -10px rgba(41, 37, 31, .6); }
+.flow-ticket:disabled { cursor: default; opacity: .55; filter: saturate(.7); }
+.flow-ticket-body { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 12px; margin: 7px 10px 7px 7px; padding: 10px 10px 10px 10px; border: 1px solid var(--frame); border-radius: 7px; min-width: 0; }
+.flow-ticket-chip { grid-row: span 2; width: 30px; height: 38px; display: grid; place-items: center; border-radius: 5px; background: url("/images/foil.jpg") center / 80px, #c9c8c4; color: rgba(41, 37, 31, .55); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08), 0 1px 0 rgba(255, 255, 255, .4); }
+.flow-ticket-chip svg { width: 20px; height: 20px; }
+.flow-ticket-body strong { font-size: 24px; font-weight: 750; letter-spacing: -.045em; line-height: 1.05; }
+.flow-ticket-body small { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; opacity: .82; }
+.flow-ticket-stub { display: grid; align-content: center; justify-items: center; gap: 1px; margin: 7px 7px 7px 8px; border: 1px solid var(--frame); border-radius: 7px; text-align: center; }
+.flow-ticket-stub small { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; color: var(--label); }
+.flow-ticket-stub b { font-size: 31px; font-weight: 800; letter-spacing: -.06em; line-height: 1; font-variant-numeric: tabular-nums; }
+.flow-ticket[data-tier="2"] { --base: #dff58b; --ink: #203c32; --frame: rgba(32, 60, 50, .35); --perf: rgba(32, 60, 50, .45); --label: #3c5a1c; --pattern: var(--ticket-lattice); --pattern-size: 26px 26px; }
+.flow-ticket[data-tier="3"] { --base: #203c32; --ink: #fff4dc; --frame: rgba(216, 180, 90, .7); --perf: rgba(216, 180, 90, .8); --label: #e7c873; --pattern: var(--ticket-rosette);
+  background: linear-gradient(var(--perf) 55%, transparent 0) right calc(var(--stub) - 1px) top 10px / 1.5px 8px repeat-y, var(--ticket-rosette) left -58px center / 120px no-repeat, var(--ticket-rosette) right calc(var(--stub) + 2px) center / 96px no-repeat, linear-gradient(160deg, #27493c, #1b3329); }
+.flow-ticket[data-tier="3"] .flow-ticket-chip { background: url("/images/foil.jpg") center / 80px, #c9a24a; background-blend-mode: multiply; color: rgba(60, 40, 0, .6); }
+.flow-ticket[data-tier="4"] { --base: #17171a; --ink: #f3ead8; --frame: rgba(243, 234, 216, .22); --perf: rgba(243, 234, 216, .4); --label: #c9c3b6; border: 2px solid transparent;
+  background: linear-gradient(var(--perf) 55%, transparent 0) right calc(var(--stub) - 3px) top 10px / 1.5px 8px repeat-y padding-box, var(--ticket-lines) 0 0 / 200px 40px padding-box, linear-gradient(#17171a, #17171a) padding-box, linear-gradient(115deg, #a7f3d0, #c4b5fd 25%, #fbcfe8 45%, #fde68a 65%, #a5f3fc 85%, #c4b5fd) border-box; }
+.flow-ticket[data-tier="4"] .flow-ticket-chip { background: url("/images/foil.jpg") center / 80px, linear-gradient(135deg, #a7f3d0, #c4b5fd, #fbcfe8, #fde68a); background-blend-mode: multiply; }
+@media (max-width: 359px) { .flow-ticket { --stub: 80px; } .flow-ticket-chip { display: none; } .flow-ticket-body { grid-template-columns: minmax(0, 1fr); } .flow-ticket-body strong { font-size: 21px; } .flow-ticket-stub b { font-size: 27px; } }
+@media (prefers-reduced-motion: reduce) { .flow-ticket { transition: none; } }
+
+/* The chosen pass, shown small on the payment screens. */
+.flow-ticket.is-mini { --stub: 74px; min-height: 64px; cursor: default; margin: 4px 0 18px; box-shadow: 0 10px 20px -18px rgba(41, 37, 31, .8); }
+.flow-ticket.is-mini:hover { transform: none; }
+.flow-ticket.is-mini .flow-ticket-body { margin: 5px 8px 5px 5px; padding: 6px 10px; grid-template-columns: minmax(0, 1fr); }
+.flow-ticket.is-mini .flow-ticket-chip { display: none; }
+.flow-ticket.is-mini .flow-ticket-body strong { font-size: 19px; }
+.flow-ticket.is-mini .flow-ticket-stub { margin: 5px 5px 5px 6px; }
+.flow-ticket.is-mini .flow-ticket-stub b { font-size: 22px; }
+
+/* How will you pay? Two cards in their own materials. */
+.flow-pay-options { display: grid; gap: 14px; margin-top: 6px; }
+.flow-pay { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; width: 100%; min-height: 92px; padding: 16px 18px; border: 0; border-radius: 14px; text-align: left; cursor: pointer; transition: transform .14s ease, box-shadow .14s ease; }
+.flow-pay:hover:not(:disabled) { transform: translateY(-2px); }
+.flow-pay:active:not(:disabled) { transform: translateY(1px); }
+.flow-pay:disabled { opacity: .6; cursor: default; }
+.flow-pay > span:nth-child(2) { display: grid; gap: 3px; min-width: 0; }
+.flow-pay strong { font-size: 19px; font-weight: 750; letter-spacing: -.03em; }
+.flow-pay small { font-size: 13px; opacity: .8; }
+.flow-pay-price { display: grid; justify-items: end; gap: 2px; font-size: 21px; font-weight: 800; letter-spacing: -.04em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.flow-pay-price s { font-size: 12px; font-weight: 500; letter-spacing: 0; opacity: .6; }
+.flow-pay.is-mpesa { background: var(--flow-grain), #ffffff; color: var(--flow-ink); box-shadow: 0 0 0 1px #dfe6dc, 0 14px 24px -18px rgba(41, 37, 31, .7); }
+.flow-pay.is-mpesa img { width: 88px; height: auto; }
+.flow-pay.is-bitcoin { background: var(--ticket-lines) 0 0 / 200px 40px, radial-gradient(120% 140% at 0 0, #2a2620, #141312 60%); color: #f6eedf; box-shadow: 0 14px 26px -16px rgba(20, 19, 18, .9); }
+.flow-pay.is-bitcoin img { width: 44px; height: 44px; filter: drop-shadow(0 4px 10px rgba(247, 147, 26, .45)); }
+.flow-pay.is-bitcoin small { color: #f7c27a; opacity: 1; }
+.flow-stamp-badge { position: absolute; top: -12px; right: 14px; padding: 4px 9px; border: 2px solid #3c5a1c; border-radius: 6px; background: #dff58b; color: #203c32; font-size: 11px; font-weight: 800; letter-spacing: .1em; transform: rotate(4deg); box-shadow: 0 6px 12px -8px rgba(0, 0, 0, .6); }
+
+/* M-Pesa */
+.flow-mpesa-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.flow-mpesa-head img { width: 96px; height: auto; }
+.flow-phone { display: flex; align-items: stretch; margin-top: 8px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #c9bda9; overflow: hidden; }
+.flow-phone:focus-within { box-shadow: 0 0 0 3px #2f8f3a; }
+.mesh-flow .flow-phone .flow-input:focus-visible { outline: none; }
+.flow-phone span { display: grid; place-items: center; padding: 0 12px 0 16px; border-right: 1px solid #e7dfd1; color: var(--flow-muted); font-size: 16px; font-weight: 600; background: #faf6ee; }
+.flow-phone .flow-input { margin: 0; border: 0; border-radius: 0; box-shadow: none; outline: none; }
+.mesh-flow .flow-action.is-mpesa { background: #2f8f3a; border-color: #2f8f3a; color: #fff; }
+.mesh-flow .flow-action.is-mpesa:hover { background: #267a30; }
+.mesh-flow .flow-action.is-mpesa:disabled { background: #d9e7d7; border-color: #cfe0cc; color: #6e7f6c; }
+
+/* Have a code: type it onto the scratched strip of a card. */
+.flow-scratch { position: relative; margin-top: 10px; padding: 16px 16px 18px; border-radius: 14px; background: var(--ticket-waves) 0 0 / 200px 100px, #f7931a; box-shadow: 0 14px 26px -18px rgba(41, 37, 31, .75); }
+.flow-scratch-head { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5c3205; }
+.flow-scratch .flow-input { margin-top: 10px; border: 0; border-radius: 9px; background: url("/images/foil.jpg") center / 96px, #cfcecb; color: #1d1b18; text-align: center; font-size: 28px; font-weight: 750; letter-spacing: .32em; box-shadow: inset 0 2px 4px rgba(0, 0, 0, .18); }
+.flow-scratch .flow-input::placeholder { color: rgba(29, 27, 24, .35); }
+.flow-scratch .flow-input:focus { outline: 3px solid #29251f; outline-offset: 2px; }
+
+/* Bitcoin invoice */
+.flow-lightning-head { display: flex; align-items: center; gap: 10px; }
+.flow-lightning-head img { width: 34px; height: 34px; }
+.flow-lightning-head span { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #87470a; }
+.flow-lightning-qr::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 6px; border-radius: 12px 12px 0 0; background: #f7931a; }
+.flow-save-stamp { display: inline-block; margin-left: 8px; padding: 2px 7px; border: 1.5px solid #3c5a1c; border-radius: 5px; background: #dff58b; color: #203c32; font-size: 11px; font-weight: 800; letter-spacing: .08em; transform: rotate(-3deg); vertical-align: 2px; }
+
+/* You're online: a stamped ticket. */
+.flow-success { position: relative; overflow: hidden; }
+.flow-success-stamp { position: absolute; top: 14px; right: 12px; width: 92px; height: 92px; color: #2f8f3a; transform: rotate(12deg); opacity: .85; }
+@media (max-width: 360px) { .flow-success-stamp { top: 10px; right: 8px; width: 68px; height: 68px; } }
+
+/* My pass: the pass itself is a ticket. */
+.pass-ticket { display: grid; gap: 12px; margin: -18px -18px 4px; padding: 18px; border-radius: 15px 15px 0 0; background: var(--ticket-rosette) right -40px top -30px / 150px no-repeat, linear-gradient(160deg, #27493c, #1b3329); color: #fff4dc; }
+.pass-ticket .pass-kind { color: #dff58b; }
+.pass-ticket .pass-code span { color: #e7c873; }
+.pass-ticket .pass-code strong { color: #fff4dc; }
+.pass-ticket .pass-code small { color: rgba(255, 244, 220, .75); }
+.pass-card { overflow: hidden; }
+
+/* Notice from the Mesh team */
+.flow-notice { display: flex; gap: 10px; align-items: flex-start; margin: 0 0 16px; padding: 12px 14px; border: 1px solid #b9cbb6; border-radius: 10px; background: #e9f0e3; color: #23412b; font-size: 14px; line-height: 1.5; }
+.flow-notice svg { flex: none; margin-top: 2px; }
+.flow-notice.is-warning { border-color: #e0bf86; background: #f7ecd5; color: #6b4310; }
+
+/* Time left and codes saved on this phone */
+.mesh-flow .flow-ends { margin: 10px 0 0; font-size: 14px; color: #3d5a43; }
+.pass-ends { margin: -4px 0 0; font-size: 13px; opacity: .85; }
+.pass-saved { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.pass-saved li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid #e6e8df; }
+.pass-saved li span { display: grid; gap: 2px; }
+.pass-saved strong { font-size: 20px; letter-spacing: .06em; font-variant-numeric: tabular-nums; color: #203c32; }
+.pass-saved small { font-size: 12px; color: var(--flow-muted); }
+.pass-saved .flow-action { width: auto; min-height: 40px; padding: 0 16px; margin: 0; }
+
+/* Smart TV: steps beside a large QR, readable from the sofa. */
+.mesh-flow-card.is-tv { width: min(100%, 880px); }
+.flow-tv { display: grid; gap: 20px; align-items: center; margin: 8px 0 12px; }
+.flow-tv-steps { margin: 0; padding-left: 26px; font-size: 19px; line-height: 1.45; }
+.flow-tv-steps li { margin-bottom: 12px; }
+.flow-tv .flow-device-qr { width: min(100%, 280px); }
+@media (min-width: 640px) { .flow-tv { grid-template-columns: 1fr 300px; } }

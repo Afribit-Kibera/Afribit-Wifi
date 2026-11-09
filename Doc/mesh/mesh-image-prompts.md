@@ -12,7 +12,7 @@ Prompt:
 
 ## Website hero
 
-Saved as `public/images/mesh-neighborhood.webp`, 1440 × 960, approximately 200 KB. Generated source is retained under the Codex generated-images folder; the project contains its compressed WebP export. Used in the public portal as an illustrative neighborhood scene.
+Was saved as `public/images/mesh-neighborhood.webp`, 1440 × 960, approximately 200 KB; removed in November 2026 when the portal was simplified. Generated source is retained under the Codex generated-images folder. It was used in the public portal as an illustrative neighborhood scene.
 
 Prompt:
 

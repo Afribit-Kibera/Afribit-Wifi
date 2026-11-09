@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Check, Copy, Download, Share, SquarePlus } from "lucide-react";
+import { copyText, isSignInWindow } from "@/lib/browser";
 
 type InstallPrompt = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
 const appUrl = "https://wifi.afribit.africa/app";
@@ -9,14 +10,12 @@ const noop = () => () => {};
 
 function platform(userAgent: string) {
   const ios = /iPhone|iPad|iPod/i.test(userAgent) || (/Macintosh/.test(userAgent) && /Mobile/.test(userAgent));
-  const android = /Android/i.test(userAgent);
-  // Captive sign-in windows cannot install apps or keep Safari/Chrome storage.
-  const captive = /CaptiveNetworkSupport|wv\)|; wv/i.test(userAgent) || (ios && !/Safari\//.test(userAgent));
-  return { ios, android, captive, chrome: android && /Chrome\//.test(userAgent) && !/wv\)/.test(userAgent) };
+  // Sign-in windows cannot install apps, and cannot open Chrome or Safari for us.
+  return { ios, captive: isSignInWindow(userAgent) };
 }
 
-// Install Mesh on the home screen. Phones only allow this from the real
-// browser, so in the Wi-Fi sign-in window we hand off to Chrome or Safari.
+// Install Mesh on the home screen. Phones only allow this from Chrome or
+// Safari, so the Wi-Fi sign-in window shows the address to open there.
 export function InstallMesh() {
   const userAgent = useSyncExternalStore(noop, () => navigator.userAgent, () => "");
   const standalone = useSyncExternalStore(noop, () => window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true, () => false);
@@ -39,16 +38,13 @@ export function InstallMesh() {
     if ((await prompt.userChoice).outcome === "accepted") setInstalled(true);
     setPrompt(null);
   }
-  async function copy() {
-    try { await navigator.clipboard.writeText(appUrl); setCopied(true); } catch { setCopied(false); }
-  }
+  async function copy() { setCopied(await copyText(appUrl)); }
 
   if (standalone || installed) return <div className="install-step"><Check size={18} aria-hidden="true" /><p><strong>Mesh is on your home screen.</strong> Open it any time you are near Mesh Wi-Fi.</p></div>;
   if (prompt) return <button type="button" className="flow-action" onClick={install}><Download size={17} aria-hidden="true" /> Install Mesh</button>;
   if (device.captive) return <div className="install-steps">
-    <p className="flow-copy">This Wi-Fi sign-in window can’t install apps. {device.ios ? "Tap Done, open Safari and go to:" : "Open this page in Chrome:"}</p>
-    {device.android ? <a className="flow-action" href={`intent://wifi.afribit.africa/app#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(appUrl)};end`}>Open in Chrome</a> : null}
-    <button type="button" className="flow-stay" onClick={copy}>{copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />} {copied ? "Link copied" : "wifi.afribit.africa/app"}</button>
+    <p className="flow-copy">Open {device.ios ? "Safari" : "Chrome"} and go to this address. Tap it to copy.</p>
+    <button type="button" className="flow-action secondary" onClick={copy}>{copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />} {copied ? "Copied" : "wifi.afribit.africa/app"}</button>
   </div>;
   if (device.ios) return <ol className="install-steps">
     <li><Share size={17} aria-hidden="true" /> Tap the Share button in Safari.</li>

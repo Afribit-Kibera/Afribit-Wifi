@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   const contextId = session.split(".")[0];
   let destination: string;
   const requested = params.get("view");
-  const view = requested === "voucher" ? "voucher" : requested === "explore" ? "explore" : "internet";
+  const view = requested === "voucher" ? "voucher" : requested === "free" || requested === "explore" ? "free" : "internet";
   try {
     const [context] = await db.update(meshAccessContexts).set({ deviceKeyHash: keyHash })
       .where(and(eq(meshAccessContexts.id, contextId))).returning();

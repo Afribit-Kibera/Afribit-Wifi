@@ -5,6 +5,7 @@ import { reconcileBitikaPayment } from "@/lib/payments/reconcile-bitika";
 import { reconcilePaystackCollection } from "@/lib/payments/reconcile-paystack";
 import { reconcileLightningPayment } from "@/lib/payments/lightning";
 import { getMeshAccessStatus, getTrustedMeshContext } from "@/lib/mesh-access/service";
+import { ownsPurchase } from "@/lib/payments/earlier-purchase";
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -13,7 +14,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (!payment) return Response.json({ error: "Payment not found" }, { status: 404 });
   if (payment.metadata.meshContextId) {
     const context = await getTrustedMeshContext(request);
-    if (!context || (context.id !== payment.metadata.meshContextId && context.id !== payment.metadata.payerContextId)) return Response.json({ error: "Payment not found" }, { status: 404, headers: { "Cache-Control": "private, no-store" } });
+    if (!context || !await ownsPurchase(context, payment)) return Response.json({ error: "Payment not found" }, { status: 404, headers: { "Cache-Control": "private, no-store" } });
   }
   let reconciliationUnavailable = false;
   if (payment.provider === "bitika") {

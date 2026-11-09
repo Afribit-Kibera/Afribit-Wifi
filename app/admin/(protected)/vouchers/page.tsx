@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth";
 import { connection } from "next/server";
 import Link from "next/link";
 import { count, desc, eq } from "drizzle-orm";
@@ -11,6 +12,7 @@ import { packages, voucherBatches, vouchers } from "@/lib/db/schema";
 import { formatDuration, formatSats } from "@/lib/utils";
 
 export default async function VouchersPage() {
+  await requireAdmin(); // The layout's check doesn't stop this page rendering; check here too.
   await connection(); // Admin data is per request; never read the database at build time.
   const [wifiPackages, batches] = await Promise.all([
     db.select({ id: packages.id, name: packages.name, priceSats: packages.priceSats, durationMinutes: packages.durationMinutes }).from(packages).where(eq(packages.active, true)),

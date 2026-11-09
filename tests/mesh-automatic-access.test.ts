@@ -461,7 +461,9 @@ test("Automatic access: isolated PostgreSQL, router-bound vouchers and browser o
       assert.equal(context.macAddress, "06:22:33:44:88:BB", "The router-attested device, not the browser's MAC field");
       assert.equal((await buy("lightning", id)).status, 200);
       assert.equal(invoicesCreated, 1, "A retry returns the same invoice");
-      assert.equal((await buy("bitika", randomUUID())).status, 409, "An open Bitcoin invoice locks the device against a second purchase");
+      // "Pay with M-Pesa instead": Blink is asked again first, and an unpaid
+      // invoice gives way. (Bitika is not mocked here, so the prompt is pending.)
+      assert.equal((await buy("bitika", randomUUID())).status, 202, "An unpaid Bitcoin invoice does not lock the phone out of M-Pesa");
       const check = async () => (await paymentStatus(new Request(`https://mesh.fixture/api/payments/${id}`, { headers }), { params: Promise.resolve({ id }) })).json();
       assert.equal((await check()).status, "new");
       status = "PAID";

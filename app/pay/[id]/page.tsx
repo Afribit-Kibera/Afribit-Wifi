@@ -7,6 +7,7 @@ import { db } from "@/lib/db";
 import { payments } from "@/lib/db/schema";
 import { headers } from "next/headers";
 import { getMeshAccessStatus, getTrustedMeshContext } from "@/lib/mesh-access/service";
+import { ownsPurchase } from "@/lib/payments/earlier-purchase";
 import { readStoredLightning } from "@/lib/payments/lightning";
 import QRCode from "qrcode";
 
@@ -19,7 +20,7 @@ export default async function PaymentPage({ params }: { params: Promise<{ id: st
   if (payment.metadata.meshContextId) {
     const request = new Request(`https://wifi.afribit.africa/pay/${id}`, { headers: await headers() });
     const context = await getTrustedMeshContext(request);
-    if (!context || (context.id !== payment.metadata.meshContextId && context.id !== payment.metadata.payerContextId)) notFound();
+    if (!context || !await ownsPurchase(context, payment)) notFound();
     nativeAccess = (await getMeshAccessStatus(request, { paymentId: id })) ?? { status: "pending" as const, expiresAt: null };
   }
   // The invoice is shown only to the device that owns this payment (checked above).

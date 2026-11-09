@@ -1,8 +1,12 @@
 import { sql } from "drizzle-orm";
 import { db } from "../db";
 import { readMeshAccessConfig } from "./config";
+import { recordConnectionHistory } from "./connection-history";
 import type { RouterStats } from "./telemetry-schema";
 export { routerStatsSchema, type RouterStats } from "./telemetry-schema";
+
+// The router port that carries the internet uplink.
+export const WAN_INTERFACE = "ether1";
 
 export type StoredTelemetry = RouterStats & { reportedAt: string; rates?: Record<string, { rxBps: number; txBps: number }> };
 
@@ -24,6 +28,9 @@ export async function recordRouterTelemetry(stats: RouterStats) {
   const payload: StoredTelemetry = { ...stats, reportedAt: new Date().toISOString(), rates };
   await db.execute(sql`INSERT INTO mesh_router_telemetry(router_id,payload,updated_at) VALUES(${config.routerId},${JSON.stringify(payload)}::jsonb,now())
     ON CONFLICT(router_id) DO UPDATE SET payload=EXCLUDED.payload,updated_at=now()`);
+  // History is extra: a failure here must never lose the live report above.
+  try { await recordConnectionHistory(config.routerId, stats, rates[WAN_INTERFACE]); }
+  catch (error) { console.error("Connection history was not saved", error instanceof Error ? error.message : error); }
 }
 
 export async function readRouterTelemetry() {

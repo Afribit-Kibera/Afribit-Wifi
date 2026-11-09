@@ -117,7 +117,7 @@ result above supersedes its pending phone check; avoid another manually issued p
 
 Signal foreground text exceptions are installed on Primary. Bidirectional
 delivery with ordinary internet blocked is now confirmed by the operator.
-[Signal scope and next test](mesh-signal-text-trial.md).
+[Signal scope and next test](mesh-free-access.md#signal).
 
 **Current checkpoint, 5 October:** automatic checkout is deployed and enabled
 for Primary's open **Mesh** SSID. The welcome page establishes a trusted device

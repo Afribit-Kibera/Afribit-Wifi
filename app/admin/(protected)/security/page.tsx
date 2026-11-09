@@ -11,8 +11,8 @@ import { adminPasskeys } from "@/lib/db/schema";
 import { revokePasskeyAction } from "./actions";
 
 export default async function SecurityPage() {
+  const session = await requireAdmin(); // The layout's check doesn't stop this page rendering; check here too.
   await connection(); // Admin data is per request; never read the database at build time.
-  const session = await requireAdmin();
   const devices = await db.select().from(adminPasskeys).where(isNull(adminPasskeys.revokedAt)).orderBy(desc(adminPasskeys.createdAt));
   return (
     <>

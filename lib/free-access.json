@@ -1,0 +1,47 @@
+{
+  "_comment": "What unpaid Mesh devices may use. One list for the router rules (scripts/mesh/free_access.py) and the Free on Mesh screens. TCP 443 only. Keep it narrow: no shared Google, Apple or CAPTCHA hosts.",
+  "apps": [
+    {
+      "id": "signal",
+      "name": "Signal",
+      "note": "Text your friends and family.",
+      "hosts": ["chat.signal.org", "grpc.chat.signal.org", "storage.signal.org", "cdn.signal.org", "cdn2.signal.org", "cdn3.signal.org", "cdsi.signal.org", "svr2.signal.org", "contentproxy.signal.org"]
+    },
+    {
+      "id": "blink",
+      "name": "Blink",
+      "note": "Your Bitcoin wallet. Pay for internet with it.",
+      "hosts": ["api.blink.sv", "ws.blink.sv"]
+    }
+  ],
+  "sites": [
+    {
+      "id": "diploma",
+      "name": "Bitcoin Diploma",
+      "note": "Free workbook · PDF, 23 MB",
+      "url": "https://bitcoinekasi.com/wp-content/uploads/2025/03/bitcoin-diploma-2025-pdf.pdf",
+      "hosts": ["bitcoinekasi.com", "www.bitcoinekasi.com"]
+    },
+    {
+      "id": "bitcoin-kenya",
+      "name": "Bitcoin Kenya",
+      "note": "Learn Bitcoin, the Kenyan way.",
+      "url": "https://bitcoin.co.ke/",
+      "hosts": ["bitcoin.co.ke", "www.bitcoin.co.ke"]
+    },
+    {
+      "id": "afribit",
+      "name": "Afribit",
+      "note": "The people behind Mesh.",
+      "url": "https://www.afribit.africa/",
+      "hosts": ["afribit.africa", "www.afribit.africa"]
+    },
+    {
+      "id": "insats",
+      "name": "Insats",
+      "note": "Bitcoin projects and opportunities.",
+      "url": "https://insats.org/",
+      "hosts": ["insats.org", "www.insats.org"]
+    }
+  ]
+}

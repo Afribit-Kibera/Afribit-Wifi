@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth";
 import { connection } from "next/server";
 import { eq } from "drizzle-orm";
 import { Download } from "lucide-react";
@@ -10,6 +11,7 @@ import { voucherBatches, vouchers } from "@/lib/db/schema";
 import { formatDuration, formatSats } from "@/lib/utils";
 
 export default async function VoucherBatchPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdmin(); // The layout's check doesn't stop this page rendering; check here too.
   await connection(); // Admin data is per request; never read the database at build time.
   const { id } = await params;
   const [batch] = await db.select().from(voucherBatches).where(eq(voucherBatches.id, id)).limit(1);

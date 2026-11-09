@@ -3,189 +3,189 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#fffaf2">
+  <meta name="theme-color" content="#203c32">
   <meta name="color-scheme" content="light">
   <meta name="referrer" content="no-referrer">
   <title>Welcome to Mesh · Afribit</title>
   <link rel="preconnect" href="https://wifi.afribit.africa">
   <style>
     @font-face{font-family:Geist;font-style:normal;font-weight:100 900;font-display:swap;src:url("geist-latin.woff2") format("woff2")}
-    :root{--paper:#fffaf2;--ink:#29251f;--orange:#f7931a;--orange-soft:#ffedcf;--muted:#686055;--line:#e9dfcf;--accent:#884009}
+    :root{--paper:#fffaf2;--ink:#203c32;--orange:#f7931a;--card:#f4ebdc;--muted:#53665b;--line:#e7dfd1;--lime:#dff58b;--accent:#884009;
+      --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .16 0 0 0 0 .14 0 0 0 0 .12 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
     *{box-sizing:border-box}
-    body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 Geist,Arial,sans-serif}
-    button,input{font:inherit}button,a,summary{-webkit-tap-highlight-color:transparent}a{color:inherit}button{cursor:pointer}button:disabled{cursor:default}
-    a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
-    .page{max-width:520px;margin:auto;padding:18px 18px calc(24px + env(safe-area-inset-bottom))}
-    .masthead{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
-    .brand{display:flex;align-items:center;gap:9px;min-height:48px;text-decoration:none;color:#203c32}
-    .brand svg{width:36px;height:36px;flex:none}.wordmark{display:block;font-size:39px;font-weight:750;letter-spacing:-.075em;line-height:1}
-    .place{font-size:12px;color:var(--accent);max-width:150px;text-align:right;overflow-wrap:anywhere;min-height:44px;display:flex;align-items:center;text-underline-offset:4px}
-    .hero{position:relative;isolation:isolate;display:flex;align-items:flex-end;min-height:300px;padding:24px 24px 52px;border-radius:16px;overflow:hidden;background:#3b332a;color:#fffaf2}
-    .hero-photo{position:absolute;z-index:-2;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 43%}
-    .hero::before{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(180deg,rgba(18,16,13,.12) 0%,rgba(18,16,13,.70) 22%,rgba(18,16,13,.82) 100%)}
-    .hero-copy{width:100%}.eyebrow{margin:0 0 11px;font-size:10px;font-weight:650;text-transform:uppercase;letter-spacing:1.6px;color:#fff0d7}
-    h1{font:650 clamp(43px,11.5vw,54px)/1.04 Geist,Arial,sans-serif;letter-spacing:-.055em;margin:0}
-    .intro{margin:12px 0 0;max-width:290px;font-size:13px;line-height:1.6;color:#fffaf2}
-    .internet{position:relative;z-index:1;margin:-28px 10px 0;padding:21px 20px 15px;background:#fffdf8;border:1px solid var(--line);border-radius:13px;box-shadow:0 6px 24px rgba(74,48,13,.05)}
-    h2{font-size:27px;line-height:1.2;letter-spacing:-.9px;font-weight:650;margin:0 0 8px}
-    .internet p{margin:0 0 16px;color:var(--muted);font-size:13px;line-height:1.6;max-width:365px}
-    .buy{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;padding:14px 15px;background:var(--orange);color:var(--ink);border:1px solid transparent;border-radius:8px;font-weight:650;font-size:14px;text-align:left}
-    .buy svg{width:19px;height:19px;flex:none}.buy:disabled{background:var(--orange-soft);border-color:#ebcfa8;color:#65513b}
-    .explore{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:54px;margin-top:10px;padding:12px 15px;background:#203c32;color:#fffaf2;border:1px solid transparent;border-radius:8px;font-weight:650;font-size:14px;text-align:left}
-    .explore small{display:block;font-weight:400;font-size:11px;color:#dff58b;margin-top:2px}.explore svg{width:19px;height:19px;flex:none}.explore:disabled{background:#d8dbce;color:#53665b}.explore:disabled small{color:#53665b}
-    .billing-state{margin:10px 0 0;color:var(--muted);font-size:11px;line-height:1.5;text-align:center}
-    .voucher{display:block;min-height:44px;margin:3px auto -2px;background:none;border:0;color:var(--accent);font-size:12px;padding:9px 10px;text-decoration:underline;text-underline-offset:4px}.voucher:disabled{color:var(--muted)}
-    .bitcoin{display:flex;align-items:flex-start;gap:13px;padding:25px 10px 23px}
-    .bitcoin-symbol{width:39px;height:39px;flex:none}
-    .learn{margin:0 10px 22px;padding:19px 0;border-top:1px solid var(--line)}.learn h2{font-size:21px}.learn>p{font-size:12px;color:var(--muted);margin:0 0 12px}.learn a{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;min-height:56px;text-decoration:none;border-bottom:1px solid var(--line)}.learn strong{display:block;font-size:14px}.learn small{display:block;color:var(--muted);font-size:11px;margin-top:2px}.learn a>span:last-child{color:var(--accent);font-size:20px}
-    .bitcoin h2{font-size:17px;letter-spacing:-.3px;margin:0 0 6px}.bitcoin p{font-size:12px;color:var(--muted);line-height:1.65;margin:0;max-width:325px}
-    .help{margin:0 10px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.help details+details{border-top:1px solid var(--line)}
-    summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:15px;min-height:48px;font-size:12px;font-weight:600}summary::-webkit-details-marker{display:none}summary::after{content:"+";font-size:20px;font-weight:400;color:var(--accent)}details[open] summary::after{content:"−"}
-    .help p{margin:0 0 14px;color:var(--muted);font-size:12px;line-height:1.75}
-    .help a{display:inline-flex;align-items:center;min-height:44px;text-underline-offset:4px}
-    .footer{display:flex;justify-content:space-between;gap:12px;font-size:10px;color:var(--muted);padding:19px 10px 0}.footer strong{font-weight:650;color:var(--ink)}
-    .noscript{padding:12px;border:1px solid var(--line);font-size:12px;color:var(--muted);border-radius:6px}
-    @media(min-width:500px){.page{padding:26px 26px 32px}.masthead{margin-bottom:22px}.hero{min-height:325px;padding:28px 28px 58px}.internet{margin-top:-32px;padding:23px 24px 16px}}
-    @media(max-width:350px){.page{padding-left:14px;padding-right:14px}.hero{min-height:285px;padding:22px 20px 50px}.internet{margin-left:8px;margin-right:8px;padding-left:16px;padding-right:16px}.buy{font-size:13px;padding-left:12px;padding-right:12px}.footer{font-size:9px;gap:8px}}
-    @media(forced-colors:active){.hero{background:Canvas;color:CanvasText;border:1px solid CanvasText}.hero::before,.hero-photo{display:none}.eyebrow,.intro{color:CanvasText}.internet,.buy,.bitcoin-symbol{border:1px solid ButtonText}}
-    @media(prefers-reduced-motion:no-preference){.buy:not(:disabled){transition:background .15s}.buy:not(:disabled):hover{background:#ffad42}}
-    .hero{min-height:245px;padding-bottom:46px}h1{font-size:43px}
-    .internet{padding-top:17px}.internet h2{font-size:25px}.internet>p{margin-bottom:12px}
-    .free-apps{margin:0 10px 22px}.free-apps h2{font-size:21px}.free-apps>p{font-size:12px;color:var(--muted)}.app-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.app-card{padding:16px;border:1px solid var(--line);border-radius:10px;background:#fffdf8}.app-card img{display:block;margin-bottom:16px}.app-card strong{display:block;font-size:17px}.app-card small{font-size:11px;color:var(--muted);line-height:1.5;display:block;margin-top:5px}
-    .learning-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
-    .learn .learning-card{display:block;padding:0;min-height:220px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fffdf8;text-decoration:none}
-    .learning-card .learning-photo{position:relative;display:block;height:132px;overflow:hidden;background:#e9dfcf}
-    .learning-photo img{display:block;width:100%;height:100%;object-fit:cover}.learning-photo .book-cover{object-fit:contain;background:#30245a}
-    .learning-card .learning-copy{display:block;padding:12px}.learning-card strong{font-size:14px}.learning-card small{font-size:11px;line-height:1.5}.learning-card .learning-link{display:block;font-size:11px;font-weight:650;color:#884009;margin-top:8px}
-    @media(max-width:350px){.hero{min-height:218px;padding:19px 20px 39px}h1{font-size:39px}.intro{font-size:12px;margin-top:8px}.eyebrow{margin-bottom:8px}.internet{padding-top:14px}.internet h2{font-size:23px}.internet>p{font-size:12px;margin-bottom:10px}.learning-grid{gap:10px}.learning-card .learning-copy{padding:10px}}
+    body{margin:0;background:var(--paper) var(--grain);color:var(--ink);font:16px/1.5 Geist,Arial,sans-serif}
+    button,input{font:inherit}button,a{-webkit-tap-highlight-color:transparent}a{color:inherit}button{cursor:pointer}button:disabled{cursor:default}
+    a:focus-visible,button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+    .shell{max-width:480px;margin:auto}
+    .page{padding:0 18px calc(26px + env(safe-area-inset-bottom))}
+    .brand{display:inline-flex;align-items:center;gap:9px;min-height:44px;font-size:26px;font-weight:750;letter-spacing:-.07em}
+    .brand svg{width:30px;height:30px}
+
+    /* Welcome: the neighbourhood from above, torn off like a ticket. */
+    .hero{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:space-between;min-height:clamp(300px,54svh,470px);padding:max(10px,env(safe-area-inset-top)) 18px 34px;overflow:hidden;background:#203c32;color:var(--paper)}
+    .hero-photo{position:absolute;z-index:-2;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 36%}
+    .hero::before{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(180deg,rgba(16,30,24,.42) 0%,rgba(16,30,24,0) 24%,rgba(16,30,24,.05) 42%,rgba(22,44,34,.8) 74%,#1c3529 100%)}
+    .hero::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:9px;background:radial-gradient(circle at 9px 9px,var(--paper) 5.5px,transparent 6px) repeat-x;background-size:18px 9px}
+    .hero .brand{color:var(--paper);text-shadow:0 1px 12px rgba(0,0,0,.25)}
+    .stamp{position:absolute;top:max(14px,env(safe-area-inset-top));right:16px;width:84px;height:84px;color:var(--lime);transform:rotate(-11deg);opacity:.93}
+    h1{margin:0;font-size:clamp(38px,11.5vw,48px);line-height:1;letter-spacing:-.055em;font-weight:700}
+    .hero p{margin:10px 0 0;max-width:32ch;font-size:15px;color:rgba(255,250,242,.88)}
+
+    /* Two pocket tickets. Notches are paper-coloured circles on the perforation. */
+    .actions{display:grid;gap:22px;margin-top:22px}
+    .ticket{--stub:78px;--tbg:var(--card);position:relative;display:grid;grid-template-columns:minmax(0,1fr) var(--stub);align-items:stretch;width:100%;min-height:84px;padding:0;border:0;border-radius:12px;background:var(--grain),var(--tbg);color:#29251f;text-align:left;box-shadow:0 1px 0 rgba(41,37,31,.08),0 14px 24px -16px rgba(41,37,31,.55);transition:transform .12s ease,box-shadow .12s ease}
+    .ticket::before,.ticket::after{content:"";position:absolute;right:calc(var(--stub) - 9px);width:18px;height:18px;border-radius:50%;background:var(--paper)}
+    .ticket::before{top:-9px}.ticket::after{bottom:-9px}
+    .ticket:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 rgba(41,37,31,.08),0 6px 12px -10px rgba(41,37,31,.5)}
+    .ticket-body{display:grid;align-content:center;gap:3px;padding:16px 14px 16px 20px}
+    .ticket-body strong{font-size:21px;font-weight:700;letter-spacing:-.035em;line-height:1.1}
+    .ticket-body small{font-size:13px;opacity:.78}
+    .ticket-stub{display:grid;place-items:center;margin:12px 0;border-left:2px dashed rgba(41,37,31,.3)}
+    .ticket-stub svg{width:30px;height:30px}
+    .buy{--tbg:linear-gradient(135deg,#ffa53a,#f7931a 55%,#ec8611)}
+    .buy:hover:not(:disabled){filter:brightness(1.04)}
+    .code{border-left:6px solid var(--orange)}
+    .code .ticket-body{padding-left:16px}
+    .foil{display:grid;place-items:center;width:50px;height:28px;border-radius:5px;background:url("foil.jpg") center/96px,#c9c8c4;color:#77746d;font-size:10px;font-weight:800;letter-spacing:.18em;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+    .ticket:disabled{--tbg:#efe5d6;color:#8a7a66;box-shadow:none;border-left-color:#e3cfb2}
+    .ticket:disabled .ticket-stub{border-left-color:rgba(138,122,102,.3)}.ticket:disabled .foil,.ticket:disabled svg{opacity:.45}
+    .ticket[aria-busy=true] svg{animation:pulse 1s ease-in-out infinite}
+    @keyframes pulse{50%{opacity:.35}}
+    @media (prefers-reduced-motion:reduce){.ticket{transition:none}.ticket[aria-busy=true] svg{animation:none}}
+    .state{margin:12px 0 0;color:var(--muted);font-size:13px;text-align:center;min-height:20px}
+    .free-link{display:flex;align-items:center;gap:14px;margin-top:16px;padding:15px 16px;border-radius:16px;background:var(--grain),#203c32;color:var(--paper);text-decoration:none}
+    .free-link .apps{display:flex;flex:none}.free-link .apps img{width:32px;height:32px;padding:4px;border-radius:50%;background:#fff;box-shadow:0 0 0 2.5px #203c32}.free-link .apps img+img{margin-left:-8px}
+    .free-link span{flex:1;min-width:0}.free-link strong{display:block;font-size:16px}.free-link small{display:block;font-size:13px;color:var(--lime)}
+    .free-link b{font-size:22px;font-weight:400;color:var(--lime)}
+
+    /* Free on Mesh */
+    .top{padding-top:max(10px,env(safe-area-inset-top))}
+    .back{display:inline-flex;align-items:center;gap:6px;min-height:44px;color:var(--muted);font-size:15px;text-decoration:none}
+    h2{font-size:36px;line-height:1.05;letter-spacing:-.05em;font-weight:700;margin:4px 0 8px}
+    .lead{margin:0 0 14px;color:var(--muted);font-size:15px}
+    .list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+    .row{display:flex;align-items:center;gap:14px;min-height:64px;padding:14px 16px;border-radius:13px;background:#fffdf8;box-shadow:0 1px 0 rgba(41,37,31,.06),0 0 0 1px var(--line);text-decoration:none}
+    .row img{flex:none}.row span{flex:1;min-width:0}.row strong{display:block;font-size:17px}.row small{display:block;font-size:13px;color:var(--muted)}
+    .row b{color:#a0907a;font-weight:400;font-size:22px}
+    .note{margin:12px 2px 18px;color:var(--muted);font-size:13px}
+    [hidden]{display:none!important}
+    @media (max-width:350px){.ticket{--stub:66px}.ticket-body strong{font-size:19px}.stamp{width:70px;height:70px}}
   </style>
 </head>
 <body>
-  <div class="page">
-    <header class="masthead">
-      <a class="brand" href="#welcome-heading" aria-label="Mesh welcome">
-        <svg viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M4 26V12a6 6 0 0 1 12 0v12a6 6 0 0 0 12 0V10M10 26V12a6 6 0 0 1 12 0v12a6 6 0 0 0 12 0V10" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg>
-        <span class="wordmark">Mesh</span>
-      </a>
-      <a class="place" href="#learn">Learn about Bitcoin ↗</a>
-    </header>
-    <main>
-      <section class="hero" aria-labelledby="welcome-heading">
-        <img class="hero-photo" src="mesh-kibera-market-960.jpg" srcset="mesh-kibera-market-960.jpg 960w, mesh-kibera-market-1440.jpg 1440w" sizes="(max-width: 350px) calc(100vw - 28px), (max-width: 519px) calc(100vw - 36px), 468px" width="960" height="640" alt="Customers and vendors at a Kibera vegetable stall with a Bitcoin accepted here sign.">
-        <div class="hero-copy">
-          <p class="eyebrow">Powered by Bitcoin</p>
-          <h1 id="welcome-heading">Welcome<br>to Mesh.</h1>
-          <p class="intro">Karibu. Community Wi-Fi, built in Kibera by Afribit.</p>
-        </div>
-      </section>
-      <section class="internet" aria-labelledby="internet-heading">
-        <h2 id="internet-heading">Get online.</h2>
-        <p>Choose a pass. Pay with M-Pesa. Already paid? Tap either button and your pass reconnects.</p>
-        <!-- Commission billing for this exact access router before enabling purchase. -->
-        <form id="internet-form" action="https://wifi.afribit.africa/" method="get">
+  <div class="shell">
+    <main id="home">
+      <header class="hero">
+        <img class="hero-photo" src="mesh-aerial-800.jpg" srcset="mesh-aerial-800.jpg 800w, mesh-aerial-1200.jpg 1200w" sizes="(max-width: 480px) 100vw, 480px" width="800" height="993" alt="">
+        <div class="brand" aria-label="Mesh"><svg viewBox="0 0 36 36" fill="none" aria-hidden="true"><path d="M4 26V12a6 6 0 0 1 12 0v12a6 6 0 0 0 12 0V10M10 26V12a6 6 0 0 1 12 0v12a6 6 0 0 0 12 0V10" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/></svg><span aria-hidden="true">Mesh</span></div>
+        <svg class="stamp" viewBox="0 0 100 100" aria-hidden="true">
+          <defs>
+            <path id="ring" d="M50 50m-35 0a35 35 0 1 1 70 0a35 35 0 1 1-70 0"/>
+            <filter id="ink"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="1" seed="4"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.1 1.5"/><feComposite in="SourceGraphic" operator="in"/></filter>
+          </defs>
+          <g filter="url(#ink)" fill="none" stroke="currentColor">
+            <circle cx="50" cy="50" r="47" stroke-width="2.6"/><circle cx="50" cy="50" r="27" stroke-width="1.6"/>
+            <text fill="currentColor" stroke="none" font-size="11.2" font-weight="800" letter-spacing="2.1"><textPath href="#ring">KARIBU · MESH · KIBERA ·</textPath></text>
+            <path d="M37 47a18 18 0 0 1 26 0M41.5 52a11.5 11.5 0 0 1 17 0" stroke-width="3.6" stroke-linecap="round"/><circle cx="50" cy="58" r="3" fill="currentColor" stroke="none"/>
+          </g>
+        </svg>
+        <div><h1 id="welcome">Welcome to Mesh.</h1><p>Karibu. Community Wi-Fi in Kibera, by Afribit.</p></div>
+      </header>
+      <div class="page">
+        <!-- Billing opens only for the commissioned router (site-config.js). -->
+        <form id="internet-form" action="https://wifi.afribit.africa/" method="get" class="actions">
           <input type="hidden" name="view" value="internet">
           <input type="hidden" name="mac" value="$(mac)">
           <input type="hidden" name="ip" value="$(ip)">
           <input type="hidden" name="router" id="router-id" value="MESH_ROUTER_ID_NOT_CONFIGURED">
           <input type="hidden" name="link-login" value="$(link-login)">
           <input type="hidden" name="link-orig" value="$(link-orig)">
-          <button class="buy" id="buy" type="submit" aria-describedby="billing-state" disabled>Choose an internet pass <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-          <button class="explore" id="explore" type="submit" disabled><span>Explore Mesh<small>Free learning, apps and local services</small></span><svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-          <div class="billing-state" id="billing-state" role="status">Internet passes are temporarily unavailable. Please check again shortly.</div>
-          <button class="voucher" id="voucher" type="submit" aria-describedby="billing-state" disabled>Have a voucher or pass code?</button>
+          <button class="ticket buy" id="buy" type="submit" disabled>
+            <span class="ticket-body"><strong id="buy-label">Get internet</strong><small>Pay with M-Pesa or Bitcoin</small></span>
+            <span class="ticket-stub" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M5 13a16 16 0 0 1 22 0M9.5 18a9.5 9.5 0 0 1 13 0"/><circle cx="16" cy="23.5" r="2.4" fill="currentColor" stroke="none"/></svg></span>
+          </button>
+          <button class="ticket code" id="voucher" type="submit" disabled>
+            <span class="ticket-body"><strong>I have a code</strong><small>Voucher or pass code</small></span>
+            <span class="ticket-stub" aria-hidden="true"><span class="foil">•••</span></span>
+          </button>
         </form>
-      </section>
-      <section class="bitcoin" aria-labelledby="bitcoin-heading">
-        <img class="bitcoin-symbol" src="bitcoin.svg" width="39" height="39" alt="Bitcoin">
-        <div><h2 id="bitcoin-heading">Powered by Bitcoin.</h2><p>Learn about money you can send directly, across borders. Start with free Bitcoin lessons here on Mesh.</p></div>
-      </section>
-      <section class="free-apps" aria-labelledby="apps-heading">
-        <h2 id="apps-heading">Your apps. Free on Mesh.</h2>
-        <p>Already installed? Stay on Mesh and open the app on your phone. No internet pass needed.</p>
-        <div class="app-grid">
-          <div class="app-card"><img src="signal.svg" width="36" height="36" alt=""><strong>Signal</strong><small>Send messages to friends and family.</small></div>
-          <div class="app-card"><img src="blink.svg" width="36" height="36" alt=""><strong>Blink</strong><small>Your everyday Bitcoin wallet.</small></div>
-        </div>
-        <p>These apps need Mesh's internet connection. Other browsing and app downloads need a pass.</p>
-      </section>
-      <section class="learn" id="learn" aria-labelledby="learn-heading">
-        <h2 id="learn-heading">Learn. Explore. It's free.</h2>
-        <p>No internet pass needed for these websites. Available when Mesh has an internet connection. External videos and links may need a pass.</p>
-        <div class="learning-grid">
-          <a class="learning-card" href="https://bitcoinekasi.com/wp-content/uploads/2025/03/bitcoin-diploma-2025-pdf.pdf" target="_blank" rel="noopener noreferrer"><span class="learning-photo"><img class="book-cover" src="learn-diploma.jpg" width="420" height="544" loading="lazy" alt=""></span><span class="learning-copy"><strong>Bitcoin Diploma</strong><small>My First Bitcoin · 2025<br>English workbook · PDF, 23 MB</small><span class="learning-link">Open the free workbook ↗</span></span></a>
-          <a class="learning-card" href="https://bitcoin.co.ke/" target="_blank" rel="noopener noreferrer"><span class="learning-photo"><img src="learn-bitcoin.jpg" width="720" height="480" loading="lazy" alt=""></span><span class="learning-copy"><strong>Bitcoin Kenya</strong><small>Start with Bitcoin, in a Kenyan context.</small><span class="learning-link">Start learning ↗</span></span></a>
-          <a class="learning-card" href="https://www.afribit.africa/" target="_blank" rel="noopener noreferrer"><span class="learning-photo"><img src="mesh-kibera-market-960.jpg" width="960" height="640" loading="lazy" alt=""></span><span class="learning-copy"><strong>Afribit</strong><small>Meet the people building with Bitcoin.</small><span class="learning-link">Meet the community ↗</span></span></a>
-          <a class="learning-card" href="https://insats.org/" target="_blank" rel="noopener noreferrer"><span class="learning-photo"><img src="learn-community.jpg" width="720" height="405" loading="lazy" alt=""></span><span class="learning-copy"><strong>Insats</strong><small>Discover Bitcoin projects and opportunities.</small><span class="learning-link">Explore Insats ↗</span></span></a>
-        </div>
-      </section>
-      <section class="help" aria-label="About your connection">
-        <details id="about-mesh"><summary>What is Mesh?</summary><p>Mesh is community Wi-Fi by Afribit. Connect to explore the free learning websites, or buy an internet pass for everything else. Nearby access points help more people connect. As local services are added, you'll be able to use them here too.</p><p>Mesh is the network. A pass gives this device access to the wider internet. You don't need a Bitcoin wallet to get started.</p></details>
-        <details><summary>How do I get internet?</summary><p>Choose a pass, enter your M-Pesa number, then approve the payment on your phone. Stay connected to Mesh. Your internet turns on automatically when your payment is confirmed.</p></details>
-        <details><summary>Why Bitcoin?</summary><p>Bitcoin is an open network for sending and receiving money without a bank account. Learn how wallets work and how to use them safely with our free resources. You can still buy an internet pass with M-Pesa; no Bitcoin wallet needed.</p></details>
-        <details><summary>Can I buy internet later?</summary><p>Yes. Stay connected to Mesh and open <a href="./mesh.html">your Mesh page</a> in Safari or Chrome. Save it so you can return after closing this welcome window.</p></details>
-      </section>
-      <noscript><p class="noscript">Welcome to Mesh. Turn on JavaScript to choose an internet pass when checkout is available.</p></noscript>
+        <p class="state" id="billing-state" role="status">Internet passes are paused. Please check again shortly.</p>
+        <a class="free-link" href="#free"><span class="apps" aria-hidden="true"><img src="signal.svg" alt=""><img src="blink.svg" alt=""></span><span><strong>Free on Mesh</strong><small>Signal, Blink and Bitcoin lessons. No pass needed.</small></span><b aria-hidden="true">›</b></a>
+      </div>
     </main>
-    <footer class="footer"><strong>Afribit · Kibera</strong><span>Built here. Connected together.</span></footer>
+
+    <main id="free" hidden aria-labelledby="free-heading">
+      <div class="page top">
+        <a class="back" href="#">‹ Back</a>
+        <h2 id="free-heading">Free on Mesh.</h2>
+        <p class="lead">These work without a pass.</p>
+        <ul class="list">
+          <li class="row"><img src="signal.svg" width="32" height="32" alt=""><span><strong>Signal</strong><small>Text your friends and family.</small></span></li>
+          <li class="row"><img src="blink.svg" width="32" height="32" alt=""><span><strong>Blink</strong><small>Your Bitcoin wallet. Pay for internet with it.</small></span></li>
+        </ul>
+        <p class="note">Already have the app? Just open it.</p>
+        <ul class="list">
+          <li><a class="row" href="https://bitcoinekasi.com/wp-content/uploads/2025/03/bitcoin-diploma-2025-pdf.pdf"><span><strong>Bitcoin Diploma</strong><small>Free workbook · PDF, 23 MB</small></span><b aria-hidden="true">›</b></a></li>
+          <li><a class="row" href="https://bitcoin.co.ke/"><span><strong>Bitcoin Kenya</strong><small>Learn Bitcoin, the Kenyan way.</small></span><b aria-hidden="true">›</b></a></li>
+          <li><a class="row" href="https://www.afribit.africa/"><span><strong>Afribit</strong><small>The people behind Mesh.</small></span><b aria-hidden="true">›</b></a></li>
+          <li><a class="row" href="https://insats.org/"><span><strong>Insats</strong><small>Bitcoin projects and opportunities.</small></span><b aria-hidden="true">›</b></a></li>
+          <li><a class="row" href="https://wifi.afribit.africa/app"><span><strong>Get the Mesh app</strong><small>Mesh on your home screen.</small></span><b aria-hidden="true">›</b></a></li>
+        </ul>
+      </div>
+    </main>
+    <noscript><p class="state">Turn on JavaScript to buy an internet pass.</p></noscript>
   </div>
   <script src="site-config.js"></script>
   <script>
     (function () {
       "use strict";
+      // The list above matches lib/free-access.json, which sets the router rules.
       var site = window.MESH_SITE || {};
       var form = document.getElementById("internet-form");
       var buy = document.getElementById("buy");
+      var buyLabel = document.getElementById("buy-label");
       var voucher = document.getElementById("voucher");
-      var explore = document.getElementById("explore");
-      var router = document.getElementById("router-id");
+      var state = document.getElementById("billing-state");
       var view = form.elements.namedItem("view");
-      // Payment context carries a browser capability: never obtain it over
-      // an open Wi-Fi HTTP hop or fall back to browser-supplied identifiers.
+      // Device context is a capability: only fetch it over the commissioned
+      // TLS join, never from browser-supplied identifiers on open Wi-Fi.
       var billingEnabled = site.billingReady === true && site.routerId === "KM-LAB-001" && site.automaticJoinUrl === "https://mesh-core.afribit.africa/start";
       if (billingEnabled) {
-        if (site.automaticJoinUrl === "https://mesh-core.afribit.africa/start") {
-          form.action = site.automaticJoinUrl;
-          Array.prototype.forEach.call(form.querySelectorAll("input[type=hidden]"), function (input) {
-            if (input.name !== "view") input.disabled = true;
-          });
-        }
-        router.value = site.routerId;
-        buy.disabled = false;
-        voucher.disabled = false;
-        explore.disabled = false;
-        document.getElementById("billing-state").textContent = "Choose your pass. See the price before you pay.";
+        form.action = site.automaticJoinUrl;
+        Array.prototype.forEach.call(form.querySelectorAll("input[type=hidden]"), function (input) { if (input.name !== "view") input.disabled = true; });
+        document.getElementById("router-id").value = site.routerId;
       }
-      // One view field preserves the existing internet/voucher portal contract.
-      voucher.addEventListener("click", function () { view.value = "voucher"; });
-      explore.addEventListener("click", function () { view.value = "explore"; });
-      buy.addEventListener("click", function () { view.value = "internet"; });
-      var opening = false;
-      var restoreTimer;
-      function restoreButtons() {
+      var opening = false, restoreTimer;
+      function ready() {
         opening = false;
         window.clearTimeout(restoreTimer);
-        buy.disabled = !billingEnabled;
-        voucher.disabled = !billingEnabled;
-        explore.disabled = !billingEnabled;
+        buy.disabled = voucher.disabled = !billingEnabled;
+        buyLabel.textContent = "Get internet";
         buy.removeAttribute("aria-busy");
-        buy.firstChild.textContent = "Choose an internet pass ";
-        if (billingEnabled) document.getElementById("billing-state").textContent = "Choose your pass. See the price before you pay.";
+        if (billingEnabled) state.textContent = "";
       }
+      buy.addEventListener("click", function () { view.value = "internet"; });
+      voucher.addEventListener("click", function () { view.value = "voucher"; });
       form.addEventListener("submit", function (event) {
         if (!billingEnabled || opening) { event.preventDefault(); return; }
         opening = true;
-        buy.disabled = true;
-        voucher.disabled = true;
-        explore.disabled = true;
+        buy.disabled = voucher.disabled = true;
         buy.setAttribute("aria-busy", "true");
-        buy.firstChild.textContent = view.value === "voucher" ? "Opening voucher access… " : view.value === "explore" ? "Opening Mesh… " : "Opening internet passes… ";
-        document.getElementById("billing-state").textContent = "Loading your options. Stay connected to Mesh.";
-        restoreTimer = window.setTimeout(function () {
-          restoreButtons();
-          document.getElementById("billing-state").textContent = "Taking longer than usual? Tap again to retry. No payment has been requested.";
-        }, 20000);
+        if (view.value === "internet") buyLabel.textContent = "Opening…";
+        state.textContent = "Stay connected to Mesh.";
+        restoreTimer = window.setTimeout(function () { ready(); state.textContent = "Taking long? Tap again. No payment has been requested."; }, 20000);
       });
-      window.addEventListener("pageshow", restoreButtons);
+      // Screens by address, so the phone's back button returns to Welcome.
+      function show() {
+        var free = location.hash === "#free";
+        document.getElementById("home").hidden = free;
+        document.getElementById("free").hidden = !free;
+        window.scrollTo(0, 0);
+      }
+      window.addEventListener("hashchange", show);
+      window.addEventListener("pageshow", ready);
+      ready();
+      show();
     }());
   </script>
 </body>

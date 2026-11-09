@@ -3,6 +3,27 @@ import { db } from "../db";
 
 type PurchaseOwner = { paymentId: string; contextId: string; routerId: string; macAddress: string };
 
+const nowMs = sql`(extract(epoch from now())*1000)::bigint`;
+
+// An earlier purchase on this device that can no longer take money, so it must
+// not block a new one. Age alone is never enough for a prompt that was sent:
+// the provider must have been asked again just now (replaceCheckedAt) and still
+// report that nobody approved it, after the M-Pesa prompt has timed out.
+export function replaceablePurchase(alias: string) {
+  const p = sql.raw(alias);
+  return sql`(${p}.status IN ('new','processing') AND (
+    (NOT (${p}.metadata ? 'bitikaChargeStartedAt') AND NOT (${p}.metadata ? 'paystackChargeStartedAt')
+      AND (${p}.provider='paystack' OR ${p}.provider_invoice_id IS NULL)
+      AND ${p}.created_at < now()-interval '1 minute')
+    OR (COALESCE((${p}.metadata->>'replaceCheckedAt')::bigint,0) > ${nowMs}-60000 AND (
+      (${p}.provider='lightning' AND ${p}.provider_invoice_id IS NOT NULL AND ${p}.metadata->'lightning'->>'status'='pending')
+      OR (${p}.provider IN ('bitika','paystack') AND ${p}.provider_invoice_id IS NOT NULL
+        AND COALESCE(${p}.metadata->${p}.provider->>'collectionConfirmed','false')<>'true'
+        AND COALESCE(${p}.metadata->${p}.provider->>'resolutionRequired','false')<>'true'
+        AND ${p}.metadata->${p}.provider->>'status' IN ('processing','pending','ongoing','pay_offline','send_otp')
+        AND COALESCE((${p}.metadata->>(${p}.provider||'ChargeStartedAt'))::bigint,${nowMs}) < ${nowMs}-180000)))))`;
+}
+
 // The unique device row serializes concurrent inserts/updates in PostgreSQL.
 // A preliminary SELECT, a browser UUID or an expiring Redis lock cannot provide
 // this guarantee after a crash or an ambiguous provider response.
@@ -23,6 +44,7 @@ export async function reserveMeshCheckout(owner: PurchaseOwner): Promise<boolean
           AND legacy.status IN ('new','processing')
           AND (legacy.metadata ? 'paystackChargeStartedAt' OR legacy.metadata ? 'bitikaChargeStartedAt'
             OR (legacy.provider='bitika' AND NOT (legacy.metadata ? 'collectionGuardVersion')))
+          AND NOT ${replaceablePurchase("legacy")}
           AND lc.router_id=c.router_id AND lc.mac_address=c.mac_address)
       AND NOT EXISTS(SELECT 1 FROM mesh_access_orders o JOIN mesh_access_contexts context ON context.id=o.context_id
         WHERE o.router_id=c.router_id AND context.mac_address=c.mac_address
@@ -32,7 +54,7 @@ export async function reserveMeshCheckout(owner: PurchaseOwner): Promise<boolean
     WHERE mesh_checkout_reservations.payment_id=EXCLUDED.payment_id
       OR (
         EXISTS(SELECT 1 FROM payments old WHERE old.id=mesh_checkout_reservations.payment_id
-          AND old.status IN ('invalid','expired','refunded','settled'))
+          AND (old.status IN ('invalid','expired','refunded','settled') OR ${replaceablePurchase("old")}))
         AND NOT EXISTS(SELECT 1 FROM mesh_access_orders o JOIN mesh_access_contexts context ON context.id=o.context_id
           WHERE o.router_id=EXCLUDED.router_id AND context.mac_address=EXCLUDED.mac_address
             AND o.status IN ('queued','claimed','active') AND o.expires_at > now())

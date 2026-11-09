@@ -403,7 +403,7 @@ installation is required, failure behavior, review date and negative test.
 Do not promise “only this app is free” unless the packet-level boundary
 actually supports that claim and is tested. See the planned Volume 10
 apps/services chapter when drafted and the current
-[app trial records](../mesh-blink-free-access.md).
+[app trial records](../mesh-free-access.md#blink).
 
 ### 8.3 Physical and radio security
 

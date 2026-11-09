@@ -1,8 +1,10 @@
 import { sql } from "drizzle-orm";
 import { Activity, Cpu, MemoryStick, Router, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AdminConfirmAction } from "@/components/admin-confirm-action";
+import { disconnectDeviceAction } from "@/app/admin/(protected)/network/actions";
 import { db } from "@/lib/db";
-import { readRouterTelemetry } from "@/lib/mesh-access/telemetry";
+import { readRouterTelemetry, WAN_INTERFACE } from "@/lib/mesh-access/telemetry";
 
 function duration(seconds: number) {
   const d = Math.floor(seconds / 86400), h = Math.floor((seconds % 86400) / 3600), m = Math.floor((seconds % 3600) / 60);
@@ -37,7 +39,7 @@ export async function AdminRouterHealth() {
   }
   const resource = telemetry?.resource;
   const memoryUsed = resource && resource.totalMemory ? Math.round(100 * (1 - resource.freeMemory / resource.totalMemory)) : null;
-  const wan = telemetry?.interfaces.find(item => item.name === "ether1");
+  const wan = telemetry?.interfaces.find(item => item.name === WAN_INTERFACE);
   const wanRate = wan ? telemetry?.rates?.[wan.name] : undefined;
   return (
     <section className="panel mb-6">
@@ -55,13 +57,15 @@ export async function AdminRouterHealth() {
         <div className="panel metric p-4"><span className="flex items-center gap-1 text-xs text-[var(--muted)]"><Activity size={13} /> Internet link now</span><strong className="mt-3 block text-lg">{wanRate ? `↓ ${mbps(wanRate.rxBps)}` : "—"}</strong><span className="text-xs text-[var(--muted)]">{wanRate ? `↑ ${mbps(wanRate.txBps)}` : "Needs two reports"}</span></div>
         <div className="panel metric p-4"><span className="text-xs text-[var(--muted)]">Uptime · RouterOS</span><strong className="mt-3 block text-lg">{duration(resource.uptimeSeconds)}</strong><span className="text-xs text-[var(--muted)]">{resource.version} · {resource.board}</span></div>
       </div> : <p className="p-5 text-sm text-[var(--muted)]">Waiting for the controller’s first router report.</p>}
-      {telemetry?.sessions.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Device</th><th>Address</th><th>Plan</th><th>Online for</th><th>Down / up</th><th>Ends</th></tr></thead><tbody>
+      {telemetry?.sessions.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Device</th><th>Address</th><th>Plan</th><th>Online for</th><th>Down / up</th><th>Ends</th><th></th></tr></thead><tbody>
         {telemetry.sessions.map(session => {
           const plan = plans.get(orderId(session.user) ?? "");
           return <tr key={`${session.user}-${session.macAddress}`}><td className="font-mono text-xs">{session.macAddress}</td><td className="font-mono text-xs">{session.ipAddress}</td>
             <td>{plan ? `${plan.kind} · ${plan.label}` : <span className="text-[var(--muted)]">{session.user.startsWith("ma-") ? "Automatic" : session.user}</span>}</td>
             <td>{duration(session.uptimeSeconds)}{session.idleSeconds > 300 ? <span className="text-xs text-[var(--muted)]"> · idle {duration(session.idleSeconds)}</span> : null}</td>
-            <td className="text-xs">{bytes(session.bytesOut)} / {bytes(session.bytesIn)}</td><td className="text-xs">{plan?.expiresAt ?? "—"}</td></tr>;
+            <td className="text-xs">{bytes(session.bytesOut)} / {bytes(session.bytesIn)}</td><td className="text-xs">{plan?.expiresAt ?? "—"}</td>
+            <td>{orderId(session.user) ? <AdminConfirmAction action={disconnectDeviceAction} name="orderId" value={orderId(session.user)!} label="Disconnect"
+              confirm="Takes this device off the internet within a minute. Its pass stays, so it can rejoin from the Mesh page." /> : null}</td></tr>;
         })}
       </tbody></table></div> : null}
     </section>

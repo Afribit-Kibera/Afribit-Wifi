@@ -11,9 +11,4 @@ window.MESH_SITE = Object.freeze({
   // Set https://mesh-core.afribit.africa/start only after guest-only TLS
   // onboarding is commissioned on the enrolled Primary. Never use HTTP.
   automaticJoinUrl: "",
-  // Legacy service-directory settings are used only by explore.html.
-  // The welcome popup intentionally offers welcome and internet purchase only.
-  localDirectoryUrl: "",
-  communityBoardUrl: "",
-  blinkAccessVerified: false,
 });

@@ -23,8 +23,8 @@ import assert from 'node:assert/strict';
   for (const marker of ['$(mac)', '$(ip)', '$(link-login)', '$(link-orig)']) assert(source.includes(marker), 'Template marker missing: ' + marker);
   const server = http.createServer((request, response) => {
     const pathname = new URL(request.url, 'http://127.0.0.1').pathname;
-    const name = pathname === '/' ? 'login.html' : pathname.slice(1);
-    if (!['login.html', 'mesh.html', 'explore.html', 'site-config.js', 'error.html', 'status.html', 'fstatus.html', 'geist-latin.woff2', 'bitcoin.svg', 'blink.svg', 'signal.svg', 'learn-bitcoin.jpg', 'learn-community.jpg', 'learn-diploma.jpg', 'mesh-kibera-market-960.jpg', 'mesh-kibera-market-1440.jpg', 'mesh-kibera-market-3840.jpg'].includes(name)) { response.writeHead(404); response.end(); return; }
+    const name = pathname === '/' || pathname === '/login' ? 'login.html' : pathname.slice(1);
+    if (!['login.html', 'mesh.html', 'site-config.js', 'error.html', 'status.html', 'fstatus.html', 'geist-latin.woff2', 'blink.svg', 'signal.svg', 'mesh-aerial-800.jpg', 'mesh-aerial-1200.jpg', 'foil.jpg'].includes(name)) { response.writeHead(404); response.end(); return; }
     if (name.endsWith('.jpg') || name.endsWith('.woff2') || name.endsWith('.svg')) {
       response.writeHead(200, { 'Content-Type': name.endsWith('.jpg') ? 'image/jpeg' : name.endsWith('.svg') ? 'image/svg+xml' : 'font/woff2' });
       response.end(fs.readFileSync(path.join(shell, name)));
@@ -58,20 +58,26 @@ import assert from 'node:assert/strict';
     });
     await page.goto(base);
     for (const id of ['buy', 'voucher']) assert(await page.locator('#' + id).isDisabled(), 'Default capability enabled: ' + id);
-    assert(await page.getByRole('heading', { name: 'Powered by Bitcoin.' }).isVisible());
-    assert(await page.getByRole('link', { name: 'Mesh welcome' }).isVisible());
-    assert.equal(await page.locator('#use-mesh-free').count(), 0);
-    assert.equal(await page.getByRole('link', { name: 'Mesh welcome' }).getAttribute('href'), '#welcome-heading');
-    assert.equal(await page.locator('.app-card img').count(), 2);
-    assert(await page.locator('.app-card img').evaluateAll(images => images.every(image => image.complete && image.naturalWidth > 0)), 'Official app logos failed to load locally');
-    assert.equal(await page.locator('#learn .learning-card').count(), 4);
+    assert(await page.getByRole('heading', { name: 'Welcome to Mesh.' }).isVisible());
+    assert.equal(await page.locator('#home').locator('button, a').count(), 3, 'Welcome offers Get internet, I have a code and Free on Mesh only');
+    assert(await page.locator('#free').isHidden(), 'Free list is its own screen');
+    assert.equal(await page.locator('#explore,#blink,#community-board,#use-mesh-free').count(), 0, 'Old navigation returned to the captive');
+    assert(await page.locator('.hero-photo').evaluate(image => image.complete && image.naturalWidth > 0 && image.currentSrc.includes('mesh-aerial-800.jpg')), 'Local background photo did not load');
+    await page.getByRole('link', { name: /Free on Mesh/ }).click();
+    await page.getByRole('heading', { name: 'Free on Mesh.' }).waitFor();
+    assert(await page.locator('#home').isHidden());
+    assert.equal(await page.locator('#free .row img').count(), 2);
+    assert(await page.locator('#free .row img').evaluateAll(images => images.every(image => image.complete && image.naturalWidth > 0)), 'Official app logos failed to load locally');
     assert.equal(await page.getByRole('link', { name: /Bitcoin Diploma/ }).getAttribute('href'), 'https://bitcoinekasi.com/wp-content/uploads/2025/03/bitcoin-diploma-2025-pdf.pdf');
-    assert.equal(await page.locator('#explore,#blink,#community-board').count(), 0, 'App navigation returned to the captive');
-    assert(await page.locator('.hero-photo').evaluate(image => image.complete && image.naturalWidth > 0 && image.currentSrc.includes('mesh-kibera-market-960.jpg')), 'Local background photo did not load');
-    assert(await page.locator('.hero-photo').evaluate(image => getComputedStyle(image).position === 'absolute'), 'Photo is not part of the hero background');
+    assert.equal(await page.getByRole('link', { name: /Get the Mesh app/ }).getAttribute('href'), 'https://wifi.afribit.africa/app');
+    const freeList = JSON.parse(fs.readFileSync('lib/free-access.json', 'utf8'));
+    for (const site of freeList.sites) assert.equal(await page.locator(`#free a[href="${site.url}"]`).count(), 1, 'Router page lists ' + site.name);
+    await page.screenshot({ path: path.join(output, 'mesh-free-mobile.png'), fullPage: true });
+    await page.goBack();
+    await page.getByRole('heading', { name: 'Welcome to Mesh.' }).waitFor();
     await page.evaluate(() => document.fonts.ready);
     assert(await page.evaluate(() => Array.from(document.fonts).some(font => font.family === 'Geist' && font.status === 'loaded')), 'Locally hosted Geist did not load');
-    assert((await page.locator('#billing-state').textContent()).includes('temporarily unavailable'), 'Disabled purchase explanation missing');
+    assert((await page.locator('#billing-state').textContent()).includes('paused'), 'Disabled purchase explanation missing');
     assert(requests.every(url => new URL(url).origin === base), 'Default shell made an external request');
     for (const width of [320, 390, 430, 580]) {
       await page.setViewportSize({ width, height: 844 });
@@ -95,7 +101,7 @@ import assert from 'node:assert/strict';
     assert(await page.locator('#buy').evaluate(button => button.getBoundingClientRect().bottom <= window.innerHeight), 'Enabled checkout action is below the small-phone fold');
     await page.screenshot({ path: path.join(output, 'mesh-welcome-checkout-small-phone.png'), fullPage: false });
     await page.setViewportSize({ width: 390, height: 844 });
-    const smallTargets = await page.locator('button,a,summary').evaluateAll(elements => elements.filter(element => {
+    const smallTargets = await page.locator('#home button,#home a,.brand').evaluateAll(elements => elements.filter(element => {
       const height = element.getBoundingClientRect().height;
       return height > 0 && height < 44;
     }).map(element => element.textContent.trim()));
@@ -134,36 +140,24 @@ import assert from 'node:assert/strict';
     await page.waitForURL('https://mesh-core.afribit.africa/start?*');
     assert.equal(joinRequest.searchParams.get('view'), 'voucher');
     assert.deepEqual([...joinRequest.searchParams.keys()], ['view']);
-    await page.goto(base + '/mesh.html');
-    assert(await page.getByRole('heading', { name: 'Come back anytime.' }).isVisible());
-    assert.equal(await page.locator('.address').textContent(), base + '/mesh.html');
-    assert(await page.getByRole('link', { name: 'View internet pass', exact: true }).isVisible());
-    assert.equal(await page.getByRole('link', { name: 'View internet pass', exact: true }).getAttribute('href'), './status');
-    for (const width of [320, 390, 430]) {
-      await page.setViewportSize({ width, height: 568 });
-      assert(await page.locator('#buy').evaluate(button => {
-        const box=button.getBoundingClientRect();return box.top>=0&&box.bottom<=window.innerHeight;
-      }), 'Persistent purchase action must stay visible');
-      assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
-    }
-    await page.screenshot({ path: path.join(output, 'mesh-persistent-purchase-mobile.png'), fullPage: true });
-    await page.locator('#buy').click();
-    await page.waitForURL('https://mesh-core.afribit.africa/start?*');
-    assert.deepEqual([...joinRequest.searchParams.keys()], ['view'], 'Persistent entry must obtain fresh attestation, not pass device fields');
     await page.unroute('https://mesh-core.afribit.africa/start?*');
-    site = { billingReady: true, routerId: '../invalid', localDirectoryUrl: 'javascript:alert(1)', blinkAccessVerified: false };
+    // The old Mesh page address forwards to the free list on the welcome page.
+    await page.goto(base + '/mesh.html');
+    await page.getByRole('heading', { name: 'Free on Mesh.' }).waitFor();
+    assert.equal(new URL(page.url()).pathname + new URL(page.url()).hash, '/login#free');
+    site = { billingReady: true, routerId: '../invalid' };
     await page.goto(base);
     assert(await page.locator('#buy').isDisabled(), 'Invalid router ID enabled billing');
     // Welcome and purchase remain usable as a document even if its configuration or image fails.
     await page.route('**/site-config.js', route => route.abort());
-    await page.route('**/mesh-kibera-market-*.jpg', route => route.abort());
+    await page.route('**/mesh-aerial-*.jpg', route => route.abort());
     await page.goto(base);
     assert(await page.getByRole('heading', { name: 'Welcome to Mesh.' }).isVisible());
     assert(await page.locator('#buy').isDisabled(), 'Missing config enabled billing');
     assert(await page.locator('#voucher').isDisabled());
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth));
     await page.unroute('**/site-config.js');
-    await page.unroute('**/mesh-kibera-market-*.jpg');
+    await page.unroute('**/mesh-aerial-*.jpg');
     await page.goto(base + '/fstatus.html');
     assert(await page.getByRole('heading', { name: 'No active pass.', exact: true }).isVisible());
     assert.equal(await page.getByRole('heading', { name: 'Your pass is active.', exact: true }).count(), 0, 'Unauthenticated status must not promise internet');
@@ -173,33 +167,7 @@ import assert from 'node:assert/strict';
     assert.equal(await page.getByText('59m', { exact: true }).count(), 1);
     assert.equal(await page.getByRole('heading', { name: 'No active pass.', exact: true }).count(), 0);
     assert(await page.getByText(/not a speed test/).isVisible());
-    await page.goto(base + '/explore.html');
-    assert(await page.locator('#community-board').isDisabled(), 'Unconfigured board enabled');
-    assert(await page.locator('#browser-handoff').isHidden(), 'Unconfigured browser address exposed');
-    site = { communityBoardUrl: 'javascript:alert(1)' };
-    await page.reload();
-    assert(await page.locator('#community-board').isDisabled(), 'Unsafe board URL enabled');
-    site = { communityBoardUrl: 'http://user:password@local.mesh.example/' };
-    await page.reload();
-    assert(await page.locator('#community-board').isDisabled(), 'Credentials in board URL accepted');
-    assert(await page.locator('#browser-handoff').isHidden(), 'Credential-bearing browser address exposed');
-    site = { communityBoardUrl: base + '/status.html' };
-    await page.reload();
-    assert(!(await page.locator('#community-board').isDisabled()), 'Configured local board disabled');
-    assert(await page.locator('#browser-handoff').isVisible(), 'Full-browser instructions unavailable');
-    assert.equal(await page.locator('#browser-address').textContent(), base + '/status.html');
-    await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true }));
-    await page.locator('#board-address-action').click();
-    assert.equal(await page.evaluate(() => window.getSelection().toString()), base + '/status.html', 'HTTP clipboard fallback did not select address');
-    assert((await page.locator('#board-copy-status').textContent()).includes('Choose Copy'), 'Manual copy instructions missing');
-    for (const width of [320, 390, 430, 580]) {
-      await page.setViewportSize({ width, height: 844 });
-      assert(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'Directory horizontal overflow: ' + width);
-    }
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.screenshot({ path: path.join(output, 'mesh-local-directory-mobile.png'), fullPage: true });
-    await page.locator('#community-board').click();
-    await page.waitForURL(base + '/status.html');
+    assert.equal(await page.getByRole('link', { name: 'Free on Mesh', exact: true }).getAttribute('href'), 'http://login.mesh.example/login#free');
     assert.deepEqual(failures, [], 'Browser script errors');
     const offlineContext = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 320, height: 800 } });
     const offlinePage = await offlineContext.newPage();
@@ -210,7 +178,7 @@ import assert from 'node:assert/strict';
     const retinaContext = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
     const retinaPage = await retinaContext.newPage();
     await retinaPage.goto(base);
-    assert(await retinaPage.locator('.hero-photo').evaluate(image => image.complete && image.currentSrc.includes('mesh-kibera-market-1440.jpg')), 'Retina phone did not choose a responsive photo');
+    assert(await retinaPage.locator('.hero-photo').evaluate(image => image.complete && image.currentSrc.includes('mesh-aerial-1200.jpg')), 'Retina phone did not choose a responsive photo');
     await retinaContext.close();
     const bytes = fs.readdirSync(shell).reduce((total, name) => total + fs.statSync(path.join(shell, name)).size, 0);
     const result = {
@@ -220,10 +188,9 @@ import assert from 'node:assert/strict';
       backgroundHero: true, passActionInFirstViewport: ['320x568', '390x844'],
       localGeistLoaded: true, retinaPhoneUsesResponsiveImage: true,
       missingConfigAndImageSafe: true,
-      persistentPurchaseEntry: true,
+      oldMeshPageForwards: true,
       internetContextPreserved: true, voucherSingleView: true, invalidConfigRejected: true,
       targetsAtLeast44px: true, javaScriptDisabledWelcomeVisible: true,
-      fullBrowserHandoff: true, insecureClipboardFallback: true,
       viewportWidths: [320, 390, 430, 580], pageErrors: failures, bundleBytes: bytes,
       limitations: ['RouterOS rendering and real captive browser behavior are not tested', 'No router files, SSIDs or firewall configuration changed'],
     };
