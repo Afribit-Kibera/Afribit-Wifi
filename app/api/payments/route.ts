@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { internetUpForCheckout } from "@/lib/mesh-access/uplink";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { createHash, randomUUID } from "node:crypto";
 import { getPaymentProvider } from "@/lib/payments/providers";
@@ -44,6 +45,8 @@ export async function POST(request: Request) {
   const automaticAccess = meshAutomaticAccessEnabled();
   const payer = automaticAccess ? await getTrustedMeshContext(request) : null;
   if (automaticAccess && !meshAutomaticAccessReady()) return Response.json({ error: "Internet checkout is temporarily unavailable" }, { status: 503 });
+  // Payments need the internet. With the line down, refuse before asking any provider.
+  if (!await internetUpForCheckout()) return Response.json({ error: "The internet line is down, so passes can't be bought right now. Your codes still work. Try again when the line is back." }, { status: 503 });
   if (automaticAccess && !payer) return Response.json({ error: "Reopen the Mesh Wi-Fi welcome page before buying a pass" }, { status: 401 });
   // The device that receives internet. It is still router-attested: the code
   // was created by that device's own Mesh session, never typed as a MAC.

@@ -3,7 +3,8 @@ import { packages } from "@/lib/db/schema";
 import { PortalExperience } from "@/components/portal-experience";
 import { getPaymentMethods } from "@/lib/payments/providers";
 import { readPaymentSettings } from "@/lib/settings";
-import { readMeshNotice } from "@/lib/mesh-notice";
+import { customerNotice } from "@/lib/mesh-notice";
+import { internetStatus } from "@/lib/mesh-access/uplink";
 import { headers } from "next/headers";
 import { meshAutomaticAccessEnabled } from "@/lib/mesh-access/config";
 import { getTrustedMeshContext } from "@/lib/mesh-access/service";
@@ -38,7 +39,7 @@ export default async function Home({ searchParams }: HomeProps) {
       }
     })(),
     readPaymentSettings(),
-    readMeshNotice(),
+    customerNotice(),
   ]);
   // A device whose pass just ran out is told so, instead of seeing a plain shop.
   let ended = null;
@@ -72,7 +73,8 @@ export default async function Home({ searchParams }: HomeProps) {
       tv={tv}
       packages={catalogue.items}
       packagesUnavailable={catalogue.unavailable}
-      paymentMethods={getPaymentMethods(paymentSettings)}
+      // No internet line, nothing to sell: the pass list shows "Payments are paused".
+      paymentMethods={internetStatus().online ? getPaymentMethods(paymentSettings) : []}
       notice={notice ? { message: notice.message, tone: notice.tone } : null}
       initialView={initialView}
       initialDevice={/^\d{6}$/.test(first(query.device) ?? "") ? first(query.device) : undefined}

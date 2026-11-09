@@ -21,7 +21,7 @@
     "bitika:live": "tsx --env-file=.env.bitika.live scripts/mesh/commission-bitika-live.ts",
     "paystack:live": "tsx --env-file=.env.paystack.live scripts/mesh/commission-paystack-live.ts",
     "paystack:settle": "tsx --env-file=.env.paystack.live --env-file=.env.mesh-engine scripts/mesh/settle-paystack-live.ts",
-    "test:mesh-access": "tsx --test tests/mesh-connection-history.test.ts tests/mesh-native-access.test.ts tests/mesh-automatic-access.test.ts tests/mesh-automatic-agent.test.ts tests/mesh-polling.test.ts tests/mesh-observer.test.ts tests/mesh-passes.test.ts tests/six-digit-vouchers.test.ts",
+    "test:mesh-access": "tsx --test tests/mesh-uplink.test.ts tests/mesh-connection-history.test.ts tests/mesh-native-access.test.ts tests/mesh-automatic-access.test.ts tests/mesh-automatic-agent.test.ts tests/mesh-polling.test.ts tests/mesh-observer.test.ts tests/mesh-passes.test.ts tests/six-digit-vouchers.test.ts",
     "mesh:agent": "tsx --env-file=.env.mesh-native gateway-agent/mesh-daemon.ts",
     "mesh:catalogue-check": "tsx scripts/mesh/check-3west-catalogue.ts",
     "test:production-guards": "tsx --test tests/admin-page-auth.test.ts tests/request-body.test.ts tests/3west-catalogue.test.ts tests/checkout-rate-limit.test.ts tests/mesh-checkout-reservation.test.ts tests/legacy-gateway-isolation.test.ts tests/production-readiness.test.ts",

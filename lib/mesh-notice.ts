@@ -31,3 +31,13 @@ export async function saveMeshNotice(notice: MeshNotice | null, actor: string) {
   await db.insert(appSettings).values({ key: "notice", value, updatedBy: actor, updatedAt: new Date() })
     .onConflictDoUpdate({ target: appSettings.key, set: { value, updatedBy: actor, updatedAt: new Date() } });
 }
+
+// What customers see: an outage notice while the internet line is down,
+// otherwise the team's notice. Admin settings keep reading readMeshNotice.
+export const outageMessage = "The internet line is down right now. Mesh is still on: your pass and codes still work here, and buying passes is paused until the line is back.";
+export async function customerNotice(): Promise<Pick<MeshNotice, "message" | "tone"> | null> {
+  const { internetStatus } = await import("./mesh-access/uplink");
+  if (!internetStatus().online) return { message: outageMessage, tone: "warning" };
+  const notice = await readMeshNotice();
+  return notice ? { message: notice.message, tone: notice.tone } : null;
+}

@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { CheckCircle2, Wifi } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { MeshNoticeBanner } from "@/components/mesh-notice-banner";
-import { readMeshNotice } from "@/lib/mesh-notice";
+import { customerNotice } from "@/lib/mesh-notice";
 
 export const metadata: Metadata = { title: "You’re online" };
 
@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "You’re online" };
 // phone check the Wi-Fi again, so its Cancel button turns into Done.
 export default async function OnlinePage() {
   await connection(); // The notice is read per request, never at build time.
-  const notice = await readMeshNotice();
+  const notice = await customerNotice();
   return (
     <main className="mesh-flow">
       <section className="mesh-flow-card">

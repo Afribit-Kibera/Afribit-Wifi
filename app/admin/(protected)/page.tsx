@@ -6,6 +6,7 @@ import { PageHeading } from "@/components/page-heading";
 import { Badge } from "@/components/ui/badge";
 import { AdminConfirmAction } from "@/components/admin-confirm-action";
 import { endPassAction } from "./network/actions";
+import { internetStatus } from "@/lib/mesh-access/uplink";
 import { meshLastWeek, meshLivePasses, meshRecentPayments, meshSummary } from "@/lib/admin/mesh-overview";
 
 const kes = (value: number) => `KES ${value.toLocaleString("en-KE", { maximumFractionDigits: 0 })}`;
@@ -27,9 +28,11 @@ export default async function AdminOverview() {
     { label: "Buyers (30 days)", value: String(summary.buyers30), note: `${summary.vouchersToday} vouchers used today`, icon: Users, tone: "gold" },
     { label: "Unfinished today", value: String(summary.unfinishedToday), note: "started a payment, didn’t pay", icon: CircleSlash, tone: "" },
   ];
+  const line = internetStatus();
   return (
     <>
       <PageHeading eyebrow="Mesh" title="Overview" description="Who is online, what sold and who didn't finish paying. Days follow Nairobi time." action={<Link className="text-sm font-semibold underline underline-offset-4" href="/admin/network">Connections and history</Link>} />
+      {!line.online ? <p className="panel mb-4 border-[var(--red)] p-4 text-sm font-semibold" role="status">The internet line has been down since {line.since.toLocaleString("en-KE", { timeZone: "Africa/Nairobi", hour: "numeric", minute: "2-digit" })}. Mesh pages and codes still work; pass sales are paused until it’s back.</p> : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {metrics.map(({ label, value, note, icon: Icon, tone }) => <div key={label} className={`panel metric ${tone} p-5`}>
           <div className="flex items-center justify-between text-[var(--muted)]"><span className="text-xs font-semibold">{label}</span><Icon size={17} /></div>
