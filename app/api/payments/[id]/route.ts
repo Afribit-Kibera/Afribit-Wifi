@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { payments } from "@/lib/db/schema";
 import { reconcileBitikaPayment } from "@/lib/payments/reconcile-bitika";
 import { reconcilePaystackCollection } from "@/lib/payments/reconcile-paystack";
-import { reconcileLightningPayment } from "@/lib/payments/lightning";
+import { readStoredLightning, reconcileLightningPayment } from "@/lib/payments/lightning";
 import { getMeshAccessStatus, getTrustedMeshContext } from "@/lib/mesh-access/service";
 import { ownsPurchase } from "@/lib/payments/earlier-purchase";
 
@@ -31,6 +31,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   }
   const details = payment.metadata[payment.provider] as { status?: string; resolutionRequired?: boolean; collectionConfirmed?: boolean; bitcoinSettlement?: string } | undefined;
   const nativeAccess = payment.metadata.meshContextId ? (await getMeshAccessStatus(request, { paymentId: id })) ?? { status: "pending", expiresAt: null } : null;
-  return Response.json({ status: payment.status, provider: payment.provider, providerStatus: details?.status, resolutionRequired: details?.resolutionRequired ?? false, collectionConfirmed: details?.collectionConfirmed ?? false, settlementStatus: details?.bitcoinSettlement, reconciliationUnavailable, nativeAccess }, { headers: { "Cache-Control": "private, no-store" } });
+  // The Afribit app pays an open Lightning purchase from its own wallet, so the
+  // device that owns it gets the invoice, the same one /pay/<id> shows it.
+  const stored = payment.provider === "lightning" && payment.metadata.meshContextId && ["new", "processing"].includes(payment.status) ? readStoredLightning(payment.metadata) : null;
+  const lightning = stored && Date.parse(stored.expiresAt) > Date.now() ? { paymentRequest: stored.invoice.paymentRequest, satoshis: stored.invoice.satoshis, expiresAt: stored.expiresAt } : undefined;
+  return Response.json({ status: payment.status, provider: payment.provider, providerStatus: details?.status, resolutionRequired: details?.resolutionRequired ?? false, collectionConfirmed: details?.collectionConfirmed ?? false, settlementStatus: details?.bitcoinSettlement, reconciliationUnavailable, nativeAccess, ...(lightning ? { lightning } : {}) }, { headers: { "Cache-Control": "private, no-store" } });
 }
 
