@@ -39,6 +39,8 @@ test("Afribit app: JSON join and header credentials", async t => {
   const credentials = await import("../lib/mesh-access/app-credentials");
   const { POST: appJoin } = await import("../app/api/mesh/app/join/route");
   const { GET: listPasses } = await import("../app/api/mesh/pass/route");
+  const { GET: appPackages } = await import("../app/api/mesh/app/packages/route");
+  const { GET: paymentStatus } = await import("../app/api/payments/[id]/route");
   const config = readMeshAccessConfig();
   let ip = 10;
   async function captiveLink(mac: string) {
@@ -99,6 +101,53 @@ test("Afribit app: JSON join and header credentials", async t => {
         assert.equal((await join(body)).status, 400, JSON.stringify(body));
       }
       assert.equal((await join(link)).status, 200, "The refused attempts did not use up the ticket");
+    });
+
+    await t.test("The app sees the passes on sale, only with a joined session", async () => {
+      await memory.insert(schema.packages).values([
+        { name: "Day pass", priceKes: 50, priceSats: 1, durationMinutes: 1440, sortOrder: 1 },
+        { name: "Old pass", priceKes: 20, priceSats: 1, durationMinutes: 60, active: false },
+        { name: "Hour", priceKes: 10, priceSats: 1, durationMinutes: 60, sortOrder: 0, kind: "household", deviceLimit: 3, dataLimitMb: 500 },
+      ]);
+      const packagesRequest = (headers: Record<string, string>) => appPackages(new Request("https://wifi.afribit.africa/api/mesh/app/packages", { headers }));
+      assert.equal((await packagesRequest({})).status, 401);
+      assert.equal((await packagesRequest({ "x-afribit-mesh-session": `${crypto.randomUUID()}.${freshToken()}` })).status, 401);
+      const link = await captiveLink("AA:BB:CC:00:00:05");
+      await join(link);
+      const response = await packagesRequest({ "x-afribit-mesh-session": link.session });
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get("Cache-Control"), "no-store");
+      const body = await response.json() as { packages: { name: string; kind: string; deviceLimit: number; dataLimitMb: number | null; description: string | null; bitcoinKes: number | null }[]; bitcoinEnabled: boolean; mpesaEnabled: boolean };
+      assert.deepEqual(body.packages.map(item => item.name), ["Hour", "Day pass"], "Active passes only, in the admin's order");
+      assert.deepEqual([body.packages[0].kind, body.packages[0].deviceLimit, body.packages[0].dataLimitMb, body.packages[1].dataLimitMb, body.packages[1].description], ["household", 3, 500, null, null]);
+      // No Blink or M-Pesa configuration in this fixture, so nothing can be paid for.
+      assert.equal(body.bitcoinEnabled, false);
+      assert.equal(body.mpesaEnabled, false);
+      assert(body.packages.every(item => item.bitcoinKes === null));
+    });
+
+    await t.test("The device that owns an open Lightning purchase gets its invoice", async () => {
+      const link = await captiveLink("AA:BB:CC:00:00:06");
+      await join(link);
+      const contextId = link.session.split(".")[0];
+      const [wifiPackage] = await memory.select().from(schema.packages).limit(1);
+      const lightning = (expiresAt: string) => ({ status: "pending", amountSats: 2100, expiresAt,
+        invoice: { paymentRequest: "lnbc21u1pfixture", paymentHash: "hash-fixture", satoshis: 2100, walletId: "wallet-fixture" } });
+      const open = crypto.randomUUID(), stale = crypto.randomUUID(), settled = crypto.randomUUID();
+      await memory.insert(schema.payments).values([
+        { id: open, packageId: wifiPackage.id, provider: "lightning", providerInvoiceId: "hash-fixture", status: "new", amountSats: 2100, metadata: { meshContextId: contextId, lightning: lightning(new Date(Date.now() + 600_000).toISOString()) } },
+        { id: stale, packageId: wifiPackage.id, provider: "lightning", providerInvoiceId: "hash-fixture", status: "new", amountSats: 2100, metadata: { meshContextId: contextId, lightning: lightning(new Date(Date.now() - 1_000).toISOString()) } },
+        { id: settled, packageId: wifiPackage.id, provider: "lightning", providerInvoiceId: "hash-fixture", status: "settled", amountSats: 2100, metadata: { meshContextId: contextId, lightning: lightning(new Date(Date.now() + 600_000).toISOString()) } },
+      ]);
+      const status = (id: string, session: string) => paymentStatus(new Request(`https://wifi.afribit.africa/api/payments/${id}`, { headers: { "x-afribit-mesh-session": session } }), { params: Promise.resolve({ id }) });
+      const body = await (await status(open, link.session)).json() as { lightning?: { paymentRequest: string; satoshis: number; expiresAt: string } };
+      assert.equal(body.lightning?.paymentRequest, "lnbc21u1pfixture");
+      assert.equal(body.lightning?.satoshis, 2100);
+      assert.equal(((await (await status(stale, link.session)).json()) as { lightning?: unknown }).lightning, undefined, "An expired invoice is never offered");
+      assert.equal(((await (await status(settled, link.session)).json()) as { lightning?: unknown }).lightning, undefined, "A paid purchase has nothing left to pay");
+      const other = await captiveLink("AA:BB:CC:00:00:07");
+      await join(other);
+      assert.equal((await status(open, other.session)).status, 404, "Another device can't see the invoice");
     });
   } finally {
     for (const [key, value] of saved) Reflect.set(db, key, value);

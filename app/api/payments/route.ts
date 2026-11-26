@@ -2,9 +2,9 @@ import { z } from "zod";
 import { internetUpForCheckout } from "@/lib/mesh-access/uplink";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { createHash, randomUUID } from "node:crypto";
-import { getPaymentProvider } from "@/lib/payments/providers";
+import { getPaymentMethods, getPaymentProvider } from "@/lib/payments/providers";
 import { normalizeKenyanPhone, readBitikaConfig } from "@/lib/payments/bitika";
-import { paymentProviderIds, PaymentProviderError } from "@/lib/payments/types";
+import { paymentProviderIds, PaymentProviderError, type PaymentProviderId } from "@/lib/payments/types";
 import { db } from "@/lib/db";
 import { packages, payments } from "@/lib/db/schema";
 import { createPortalSession } from "@/lib/portal-session";
@@ -27,7 +27,8 @@ const paymentSchema = z.object({
   routerId: z.string().trim().max(100).optional(),
   loginUrl: z.string().url().max(1000).optional(),
   originalUrl: z.string().url().max(1000).optional(),
-  provider: z.enum(paymentProviderIds).default("btcpay"),
+  // "mpesa" is the Afribit app's name for whichever M-Pesa provider is ready.
+  provider: z.enum([...paymentProviderIds, "mpesa"]).default("btcpay"),
   requestId: z.string().uuid().optional(),
   phone: z.string().max(32).optional(),
   // Pay for another device on this Mesh network (a TV, a child's phone) by the code it shows.
@@ -41,7 +42,12 @@ export async function POST(request: Request) {
   const parsed = paymentSchema.safeParse(body);
   if (!parsed.success) return Response.json({ error: "Invalid package or network session" }, { status: 400 });
 
-  const input = parsed.data;
+  let mpesaProvider: PaymentProviderId | undefined;
+  if (parsed.data.provider === "mpesa") {
+    mpesaProvider = getPaymentMethods(await readPaymentSettings()).find(method => method.currency === "KES")?.id;
+    if (!mpesaProvider) return Response.json({ error: "M-Pesa payments are switched off just now. Pay with Bitcoin or use a voucher." }, { status: 503 });
+  }
+  const input = { ...parsed.data, provider: mpesaProvider ?? (parsed.data.provider as PaymentProviderId) };
   const automaticAccess = meshAutomaticAccessEnabled();
   const payer = automaticAccess ? await getTrustedMeshContext(request) : null;
   if (automaticAccess && !meshAutomaticAccessReady()) return Response.json({ error: "Internet checkout is temporarily unavailable" }, { status: 503 });
