@@ -7,6 +7,7 @@ import { meshAutomaticAccessReady, readMeshAccessConfig } from "./config";
 import { freshToken, hashToken, encryptAccess, decryptAccess, meshCookieName } from "./security";
 import { validateAccessPackage, accessOrderSchema, observedHostSchema, type MeshAutomaticOrder } from "./model";
 import type { MeshNativeStatus } from "./status-types";
+import { meshSessionHeader, readCredential } from "./app-credentials";
 import { PaymentProviderError } from "../payments/types";
 import { verifiedBitikaSnapshot, type BitikaTransaction } from "../payments/bitika";
 
@@ -16,8 +17,8 @@ export type TrustedMeshContext = typeof meshAccessContexts.$inferSelect & { logi
 
 export async function getTrustedMeshContext(request: Request): Promise<TrustedMeshContext | null> {
   if (!meshAutomaticAccessReady()) return null;
-  const cookie = request.headers.get("cookie")?.split(";").map(part => part.trim()).find(part => part.startsWith(`${meshCookieName}=`))?.slice(meshCookieName.length + 1);
-  const [id, token] = (cookie ?? "").split(".");
+  const credential = readCredential(request, meshCookieName, meshSessionHeader);
+  const [id, token] = (credential ?? "").split(".");
   if (!uuid.test(id ?? "") || !/^[A-Za-z0-9_-]{43}$/.test(token ?? "")) return null;
   const config = readMeshAccessConfig();
   const [context] = await db.select().from(meshAccessContexts).where(and(eq(meshAccessContexts.id, id),
