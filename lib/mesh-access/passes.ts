@@ -5,6 +5,7 @@ import { meshAccessContexts, meshDeviceCodes, meshPassDevices, meshPasses } from
 import { readMeshAccessConfig } from "./config";
 import { accessOrderSchema, type MeshAutomaticOrder } from "./model";
 import { decryptAccess, encryptAccess, freshToken, hashToken } from "./security";
+import { meshDeviceHeader, readCredential } from "./app-credentials";
 
 // A pass is what the customer bought: a deadline, limits, a code and up to
 // deviceLimit device slots. Each slot has at most one live router order. When
@@ -38,8 +39,7 @@ export const newDeviceKey = freshToken;
 const digits = (length: number) => Array.from({ length }, () => randomInt(10)).join("");
 export function formatPassCode(code: string) { const c = normalizeCode(code); return `${c.slice(0, 3)} ${c.slice(3, 6)} ${c.slice(6)}`; }
 export function readDeviceKey(request: Request) {
-  const value = request.headers.get("cookie")?.split(";").map(part => part.trim())
-    .find(part => part.startsWith(`${meshDeviceCookieName}=`))?.slice(meshDeviceCookieName.length + 1);
+  const value = readCredential(request, meshDeviceCookieName, meshDeviceHeader);
   return isDeviceKey(value) ? value : null;
 }
 export function packageDeviceRules(kind: unknown, limit: unknown) {
