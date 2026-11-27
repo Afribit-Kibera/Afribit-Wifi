@@ -136,3 +136,48 @@ export function signBeacon(identity: { nodeKey: KeyObject; cert: NodeCertificate
 }
 
 export const isBeaconNonce = (value: string | null): value is string => value !== null && NONCE.test(value);
+
+/**
+ * The chat proof (CR-3b): this gateway vouches that a chat identity is asking from the
+ * mesh. The Afribit chat gate (services/chat-gate/src/auth.ts in the Afribit app
+ * repository) checks it against this gateway's node key, which it lists by `keyId`, so
+ * the prefix and field order below must match the gate's. `issuedAt` and `expiresAt` are
+ * in seconds, and the gate accepts a proof for at most 60 seconds. Each proof has its
+ * own nonce, which the gate keeps to refuse a replay.
+ */
+export const MESH_PROOF_PATH = "/.well-known/afribit-mesh-proof";
+export const MESH_PROOF_LIFETIME_S = 60;
+
+export type ChatMeshProof = {
+  v: 1; meshId: string; nodeId: string; featureId: "chat"; subjectPubkey: string;
+  issuedAt: number; expiresAt: number; nonce: string; keyId: string; sig: string;
+};
+
+/** The gate's name for a gateway's node key: one per certificate. */
+export const meshProofKeyId = (cert: Pick<NodeCertificate, "serial">) => `node-${cert.serial}`;
+
+export function chatProofSigningBytes(p: Omit<ChatMeshProof, "sig">) {
+  return Buffer.from(JSON.stringify(["afribit.chat.mesh.v1", p.v, p.meshId, p.nodeId, p.featureId, p.subjectPubkey, p.issuedAt, p.expiresAt, p.nonce, p.keyId]));
+}
+
+/** A chat identity: a Nostr public key, 32 bytes of lowercase hex. */
+export const isSubjectPubkey = (value: string | null): value is string => value !== null && KEY_HEX.test(value);
+
+/** Signs a chat proof for one request. The caller has already checked the peer address. */
+export function signChatProof(identity: { nodeKey: KeyObject; cert: NodeCertificate }, request: { subjectPubkey: string; nowMs: number; nonce?: string }): ChatMeshProof {
+  if (!isSubjectPubkey(request.subjectPubkey)) throw new Error("Invalid chat identity");
+  const issuedAt = Math.floor(request.nowMs / 1000);
+  const unsigned = { v: 1 as const, meshId: identity.cert.meshId, nodeId: identity.cert.nodeId, featureId: "chat" as const,
+    subjectPubkey: request.subjectPubkey, issuedAt, expiresAt: issuedAt + MESH_PROOF_LIFETIME_S,
+    nonce: request.nonce ?? randomBytes(16).toString("base64url"), keyId: meshProofKeyId(identity.cert) };
+  return { ...unsigned, sig: sign(null, chatProofSigningBytes(unsigned), identity.nodeKey).toString("base64url") };
+}
+
+/**
+ * This gateway's entry for the chat gate's CHAT_MESH_KEYS_FILE. It is public data: the
+ * certified node key as PEM, under the id its proofs carry.
+ */
+export function chatGateKeyEntry(cert: NodeCertificate) {
+  const publicKeyPem = publicKeyFromHex(cert.nodeKey).export({ format: "pem", type: "spki" }).toString();
+  return { [meshProofKeyId(cert)]: { meshId: cert.meshId, nodeId: cert.nodeId, publicKeyPem } };
+}

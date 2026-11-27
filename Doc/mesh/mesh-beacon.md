@@ -67,9 +67,27 @@ Copy `node-cert.json`, `revocations.json` and `root.pub` into `/etc/afribit/mesh
 
 The controller checks the four files against each other when it starts. A mismatch is logged as `mesh-beacon`, and the beacon stays off while paid access keeps working. Caddy forwards `/.well-known/afribit-mesh-beacon` from guests (10.30.0.0/24) only, as it does for `/start`.
 
+## Chat proof
+
+Chat on the mesh goes through the Afribit chat gate, which serves only phones that are on the mesh. Before each signed request to the gate, the app asks the controller for a proof:
+
+```text
+GET https://mesh-core.afribit.africa/.well-known/afribit-mesh-proof?feature=chat&subject=<the chat identity's public key, hex>
+```
+
+The controller signs `{ v: 1, meshId, nodeId, featureId: "chat", subjectPubkey, issuedAt, expiresAt, nonce, keyId, sig }` with the node key from the beacon. Times are in seconds, a proof lasts 60 seconds, and every proof has a new nonce, which the gate keeps so it can refuse a replay. Guests only, as for the beacon, and at most 20 proofs per address in 10 seconds.
+
+The gate lists each gateway's node key by `keyId` (`node-<certificate serial>`) in its `CHAT_MESH_KEYS_FILE`. After issuing or renewing a certificate, print the entry and add it to that file:
+
+```bash
+npm run mesh:beacon -- gate-entry --cert node-cert.json
+```
+
+The entry is public. To retire a gateway, revoke its certificate and also remove its entry from the gate. The fixed vector `tests/fixtures/mesh-chat-proof-vector.json` is the gate's test input.
+
 ## Routine work
 
-- **Renew** each node certificate before it ends. Issue a new one from the same node key every 90 days.
+- **Renew** each node certificate before it ends. Issue a new one from the same node key every 90 days, and add the new certificate's gate entry.
 - **Revoke** a lost or retired gateway: run `revoke --base revocations.json --serial <serial> --out revocations.json` on the offline machine, then copy the new list to every gateway. Phones learn it from any gateway they visit and keep it.
 - **A new gateway** needs only its own node key and certificate. The app needs no update.
 - **Losing the root key** means a new root pinned in a new app release. Keep the offline backup.

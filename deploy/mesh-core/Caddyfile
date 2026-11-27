@@ -44,9 +44,10 @@ https://mesh-core.afribit.africa {
 			respond 403
 		}
 	}
-	# The Afribit app's mesh beacon (S-14). Guests only, as for /start: the controller
-	# signs the address Caddy saw, so it must be the guest's own.
-	handle /.well-known/afribit-mesh-beacon {
+	# The Afribit app's mesh beacon (S-14) and chat proof (CR-3b). Guests only, as for
+	# /start: the controller signs for the address Caddy saw, so it must be the guest's own.
+	@meshWellKnown path /.well-known/afribit-mesh-beacon /.well-known/afribit-mesh-proof
+	handle @meshWellKnown {
 		@guest remote_ip 10.30.0.0/24
 		handle @guest {
 			reverse_proxy 127.0.0.1:8040 {

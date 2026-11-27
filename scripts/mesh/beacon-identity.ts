@@ -2,7 +2,7 @@ import { generateKeyPairSync, createPrivateKey } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { issueCertificate, issueRevocations, publicKeyHex, rootKeyIdOf, type RevocationList } from "../../lib/mesh-access/beacon";
+import { chatGateKeyEntry, issueCertificate, issueRevocations, publicKeyHex, rootKeyIdOf, type NodeCertificate, type RevocationList } from "../../lib/mesh-access/beacon";
 
 /**
  * The Afribit Mesh beacon key ceremony (S-14). Run `root-keygen` once, on a machine that is
@@ -13,6 +13,7 @@ import { issueCertificate, issueRevocations, publicKeyHex, rootKeyIdOf, type Rev
  *   node-keygen --out <dir>                       on the gateway: node-key.pem (secret) and node.pub
  *   issue  --root <dir> --node-pub <hex> --mesh <id> --node <id> [--days 90] --out <file>
  *   revoke --root <dir> [--base <revocations.json>] [--serial <s> ...] --out <file>
+ *   gate-entry --cert <node-cert.json>            the chat gate's key entry for this gateway (public)
  *
  * No secret is ever printed. Private keys are written with mode 0600.
  */
@@ -23,7 +24,7 @@ const { positionals, values } = parseArgs({
   options: {
     out: { type: "string" }, root: { type: "string" }, "node-pub": { type: "string" },
     mesh: { type: "string" }, node: { type: "string" }, days: { type: "string", default: "90" },
-    base: { type: "string" }, serial: { type: "string", multiple: true, default: [] },
+    base: { type: "string" }, cert: { type: "string" }, serial: { type: "string", multiple: true, default: [] },
   },
 });
 
@@ -74,8 +75,13 @@ async function main() {
       console.log(JSON.stringify({ revoked: list.serials.length, issuedAt: new Date(list.issuedAt).toISOString() }));
       return;
     }
+    case "gate-entry": {
+      const cert = JSON.parse(await readFile(need("cert"), "utf8")) as NodeCertificate;
+      console.log(JSON.stringify(chatGateKeyEntry(cert), null, 2));
+      return;
+    }
     default:
-      throw new Error("Use root-keygen, node-keygen, issue or revoke");
+      throw new Error("Use root-keygen, node-keygen, issue, revoke or gate-entry");
   }
 }
 

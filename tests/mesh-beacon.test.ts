@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
-import { createPublicKey, verify } from "node:crypto";
+import { createECDH, createPublicKey, verify } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { test } from "node:test";
 import {
-  BEACON_PATH, canonicalBeacon, checkGatewayIdentity, issueCertificate, issueRevocations,
-  privateKeyFromSeed, publicKeyHex, rootKeyIdOf, signBeacon,
+  BEACON_PATH, MESH_PROOF_PATH, canonicalBeacon, chatGateKeyEntry, checkGatewayIdentity, issueCertificate, issueRevocations,
+  privateKeyFromSeed, publicKeyHex, rootKeyIdOf, signBeacon, signChatProof,
 } from "../lib/mesh-access/beacon";
-import { createBeaconHandler } from "../gateway-agent/mesh-beacon";
+import { createBeaconHandler, createMeshProofHandler } from "../gateway-agent/mesh-beacon";
 
 // Fixed keys and times, so the beacon below is the same bytes on every run. The Afribit app
 // checks the same vector (packages/kernel/test/fixtures/mesh-beacon-vector.json).
@@ -55,7 +55,7 @@ test("certificates and lists stay within the protocol's limits", () => {
 });
 
 type Reply = { status: number; headers: Record<string, unknown>; body: string };
-function call(handler: ReturnType<typeof createBeaconHandler>, url: string, method = "GET"): { handled: boolean; reply: Reply } {
+function call(handler: ReturnType<typeof createBeaconHandler | typeof createMeshProofHandler>, url: string, method = "GET"): { handled: boolean; reply: Reply } {
   const reply: Reply = { status: 0, headers: {}, body: "" };
   const response = {
     setHeader(name: string, value: unknown) { reply.headers[name.toLowerCase()] = value; },
@@ -97,4 +97,72 @@ test("one address gets five beacons per ten seconds", () => {
   assert.deepEqual(statuses, [200, 200, 200, 200, 200, 429]);
   at += 10_001;
   assert.equal(call(handler, `${BEACON_PATH}?nonce=nonce-0123456789abcdefghij`).reply.status, 200);
+});
+
+// The chat proof (CR-3b). The Afribit chat gate checks it; this is the gate's check, written
+// out again here so a change on either side breaks a test.
+const PROOF_VECTOR = "tests/fixtures/mesh-chat-proof-vector.json";
+// The subject is the Nostr key of the secret 03 x 32, so the gate's tests can sign a request with it.
+const SUBJECT = (() => {
+  const ecdh = createECDH("secp256k1");
+  ecdh.setPrivateKey(Buffer.from("03".repeat(32), "hex"));
+  return ecdh.getPublicKey(null, "compressed").subarray(1).toString("hex");
+})();
+
+function gateAccepts(proof: Record<string, unknown>, keys: Record<string, { meshId: string; nodeId: string; publicKeyPem: string }>, nowS: number) {
+  const key = keys[proof.keyId as string];
+  if (!key || key.meshId !== proof.meshId || key.nodeId !== proof.nodeId || proof.featureId !== "chat" || proof.v !== 1) return false;
+  if (!/^[A-Za-z0-9_-]{22,128}$/.test(proof.nonce as string) || !/^[A-Za-z0-9_-]{86}$/.test(proof.sig as string)) return false;
+  const issuedAt = proof.issuedAt as number, expiresAt = proof.expiresAt as number;
+  if (issuedAt > nowS + 5 || issuedAt < nowS - 60 || expiresAt <= nowS || expiresAt > issuedAt + 60) return false;
+  const bytes = Buffer.from(JSON.stringify(["afribit.chat.mesh.v1", proof.v, proof.meshId, proof.nodeId, proof.featureId, proof.subjectPubkey, proof.issuedAt, proof.expiresAt, proof.nonce, proof.keyId]));
+  return verify(null, bytes, createPublicKey(key.publicKeyPem), Buffer.from(proof.sig as string, "base64url"));
+}
+
+test("the chat proof vector is stable and passes the gate's check", async () => {
+  const id = identity();
+  const proof = signChatProof(id, { subjectPubkey: SUBJECT, nowMs: T0 + 100_000, nonce: "proof-nonce-0123456789ab" });
+  const vector = { gateKeys: chatGateKeyEntry(id.cert), nowMs: T0 + 100_000, proof };
+  if (process.env.UPDATE_BEACON_VECTOR === "1") await writeFile(PROOF_VECTOR, `${JSON.stringify(vector, null, 2)}\n`);
+  assert.deepEqual(JSON.parse(await readFile(PROOF_VECTOR, "utf8")), vector);
+  assert.equal(proof.keyId, "node-0123456789abcdef");
+  assert.equal(proof.expiresAt - proof.issuedAt, 60);
+  assert.equal(gateAccepts(proof, vector.gateKeys, proof.issuedAt + 10), true);
+  assert.equal(gateAccepts({ ...proof, subjectPubkey: "cd".repeat(32) }, vector.gateKeys, proof.issuedAt), false);
+  assert.equal(gateAccepts(proof, vector.gateKeys, proof.issuedAt + 61), false);
+});
+
+test("the proof endpoint signs the identity asked for, with a fresh nonce each time", () => {
+  const id = identity();
+  const handler = createMeshProofHandler({ identity: () => id, peer: () => "10.20.0.57", now: () => T0 + 100_000 });
+  const first = call(handler, `${MESH_PROOF_PATH}?feature=chat&subject=${SUBJECT}`);
+  const second = call(handler, `${MESH_PROOF_PATH}?feature=chat&subject=${SUBJECT}`);
+  assert.equal(first.reply.status, 200);
+  assert.equal(first.reply.headers["cache-control"], "no-store");
+  const a = JSON.parse(first.reply.body), b = JSON.parse(second.reply.body);
+  assert.equal(a.subjectPubkey, SUBJECT);
+  assert.notEqual(a.nonce, b.nonce);
+  assert.equal(gateAccepts(a, chatGateKeyEntry(id.cert), Math.floor((T0 + 100_000) / 1000)), true);
+});
+
+test("the proof endpoint refuses what it should and leaves other paths alone", () => {
+  const on = createMeshProofHandler({ identity: () => identity(), peer: () => "10.20.0.57", now: () => T0 });
+  assert.equal(call(on, BEACON_PATH).handled, false);
+  assert.equal(call(on, `${MESH_PROOF_PATH}?feature=chat&subject=${SUBJECT.toUpperCase()}`).reply.status, 400);
+  assert.equal(call(on, `${MESH_PROOF_PATH}?feature=wallet&subject=${SUBJECT}`).reply.status, 400);
+  assert.equal(call(on, `${MESH_PROOF_PATH}?subject=${SUBJECT}`).reply.status, 400);
+  assert.equal(call(on, `${MESH_PROOF_PATH}?feature=chat&subject=${SUBJECT}`, "POST").reply.status, 404);
+  const off = createMeshProofHandler({ identity: () => null, peer: () => "10.20.0.57" });
+  assert.equal(call(off, `${MESH_PROOF_PATH}?feature=chat&subject=${SUBJECT}`).reply.status, 404);
+  const outsider = createMeshProofHandler({ identity: () => identity(), peer: () => { throw new Error("not a mesh address"); } });
+  assert.equal(call(outsider, `${MESH_PROOF_PATH}?feature=chat&subject=${SUBJECT}`).reply.status, 403);
+});
+
+test("one address gets twenty chat proofs per ten seconds", () => {
+  let at = T0;
+  const handler = createMeshProofHandler({ identity: () => identity(), peer: () => "10.20.0.57", now: () => at });
+  const statuses = Array.from({ length: 21 }, () => call(handler, `${MESH_PROOF_PATH}?feature=chat&subject=${SUBJECT}`).reply.status);
+  assert.deepEqual(statuses.slice(19), [200, 429]);
+  at += 10_001;
+  assert.equal(call(handler, `${MESH_PROOF_PATH}?feature=chat&subject=${SUBJECT}`).reply.status, 200);
 });

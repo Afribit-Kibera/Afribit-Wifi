@@ -1,0 +1,22 @@
+{
+  "gateKeys": {
+    "node-0123456789abcdef": {
+      "meshId": "afribit-kibera",
+      "nodeId": "KM-LAB-001",
+      "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAgTl3Dqh9F19Wo1Rmw0x+zMuNipG07jeiXfYPW4/Js5Q=\n-----END PUBLIC KEY-----\n"
+    }
+  },
+  "nowMs": 1790000100000,
+  "proof": {
+    "v": 1,
+    "meshId": "afribit-kibera",
+    "nodeId": "KM-LAB-001",
+    "featureId": "chat",
+    "subjectPubkey": "531fe6068134503d2723133227c867ac8fa6c83c537e9a44c3c5bdbdcb1fe337",
+    "issuedAt": 1790000100,
+    "expiresAt": 1790000160,
+    "nonce": "proof-nonce-0123456789ab",
+    "keyId": "node-0123456789abcdef",
+    "sig": "YrBRCFgR9LJktKPcDTPpV8t5LUYne8HTtE4j8T5-0L46hSH0nrP2D_1ceuZQgMCB8_UFHhUBBlaYYn6Q6IczBg"
+  }
+}
