@@ -9,6 +9,7 @@ import { createLiveObserver } from "./mesh-observer";
 import { performance } from "node:perf_hooks";
 import { createMeshPollWaiter, MeshPollSchedule } from "./mesh-polling";
 import { readRouterIdentity } from "./mesh-router-identity";
+import { createBeaconHandler, loadBeaconIdentity, type BeaconIdentity } from "./mesh-beacon";
 import { routerStatsSchema, type RouterStats } from "../lib/mesh-access/telemetry-schema";
 import { observedHostSchema, customerIpSchema, validateAccessOrder, validateActiveResult,
   type ActiveResult, type NativeAccessOrderV2, type ObservedHost } from "../lib/mesh-access/model";
@@ -188,7 +189,7 @@ export async function processAccessJob(jobValue: unknown, deps: {
   } finally { await lock.close(); await unlink(lockPath); }
 }
 
-function peerAddress(request: IncomingMessage, transport: DaemonConfig["joinTransport"]) {
+export function peerAddress(request: IncomingMessage, transport: DaemonConfig["joinTransport"]) {
   const address = request.socket.remoteAddress ?? "";
   if (transport === "trusted-tls-proxy") {
     // Only the explicitly configured local TLS terminator may attest a peer.
@@ -251,7 +252,14 @@ export async function runMeshDaemon(config = readDaemonConfig()) {
     schedule.activity(); waiter.wake();
     return context;
   }, transport: config.joinTransport });
+  // The beacon answers in every mode: a standby controller is still one of our gateways.
+  // A broken identity turns the beacon off and is logged; paid access keeps working.
+  let beaconIdentity: BeaconIdentity | null = null;
+  try { beaconIdentity = await loadBeaconIdentity(); }
+  catch (error) { console.error(JSON.stringify({ service: "mesh-beacon", error: error instanceof Error ? error.message : "identity not loaded" })); }
+  const beacon = createBeaconHandler({ identity: () => beaconIdentity, peer: request => peerAddress(request, config.joinTransport) });
   const server = createServer((request, response) => {
+    if (beacon(request, response)) return;
     if (config.mode !== "active") {
       response.writeHead(503, { "Cache-Control": "no-store", "Content-Type": "text/plain" });
       response.end("Mesh controller is being commissioned. Please try again later."); return;

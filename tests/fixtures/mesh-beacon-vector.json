@@ -1,0 +1,34 @@
+{
+  "rootPublicKey": "8a88e3dd7409f195fd52db2d3cba5d72ca6709bf1d94121bf3748801b40f6f5c",
+  "nowMs": 1790000100000,
+  "beacon": {
+    "v": 2,
+    "meshId": "afribit-kibera",
+    "nodeId": "KM-LAB-001",
+    "issuedAt": 1790000100000,
+    "expiresAt": 1790000160000,
+    "nonce": "nonce-0123456789abcdefghij",
+    "clientIp": "10.20.0.57",
+    "cert": {
+      "v": 1,
+      "rootKeyId": "root-8a88e3dd7409f195",
+      "serial": "0123456789abcdef",
+      "meshId": "afribit-kibera",
+      "nodeId": "KM-LAB-001",
+      "nodeKey": "8139770ea87d175f56a35466c34c7ecccb8d8a91b4ee37a25df60f5b8fc9b394",
+      "notBefore": 1790000000000,
+      "notAfter": 1797776000000,
+      "sig": "18e00bc6bca3d68bc1f612802dcf43106ab48c32c2e631ba45d1b7f1b359194ff13d7bc5210434194fe2e65b15e640943ab39db21c3817507e56ac5bc890c006"
+    },
+    "revocations": {
+      "v": 1,
+      "rootKeyId": "root-8a88e3dd7409f195",
+      "issuedAt": 1790000000000,
+      "serials": [
+        "fedcba9876543210"
+      ],
+      "sig": "1bf284c6bf6280380067d648385e973e5335642e1840f83077cad75cd334e4c51c22510d7f1c2d58e7fb958e33b6a0a4b2df6d3254b77468792099aa3c5fde05"
+    },
+    "sig": "fc14303def6e92f237f3f592a503c742caa19b955d915bcf83aeb57c83432342b9a3133701beee194683b7c5ff89faa14b003c1082201fe69ef7ae575efc3802"
+  }
+}
