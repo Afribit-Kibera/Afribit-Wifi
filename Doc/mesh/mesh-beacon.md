@@ -26,6 +26,19 @@ The formats are in `lib/mesh-access/beacon.ts`. The app's verifier is `packages/
 | Node private key `node-key.pem` | The gateway only, mode 0600 | Nobody else |
 | Node certificate and revocation list | The gateway; served in every beacon | Public |
 
+## The production root
+
+Generated 2026-11-27 and pinned in the Afribit app (the releases after 0.2.0):
+
+- rootKeyId: `root-54a10cf468d815ab`
+- public key (the whole of the gateway's `root.pub`):
+
+```text
+54a10cf468d815abbcecad788cb7098aa78295e2d30e1a335e1635ee7abad2b5
+```
+
+Its private key is kept offline by the Afribit maintainers, who issue node certificates and revocation lists from it.
+
 ## Ceremony
 
 On the offline machine:
