@@ -1,5 +1,5 @@
 # mesh-core: one Caddy in front of the portal (Next.js :3000) and the join
-# service (controller :8040).
+# service and Afribit Mesh beacon (controller :8040).
 #
 # Two ways in:
 #  - Public: Cloudflare Tunnel -> cloudflared -> 127.0.0.1:80 (plain HTTP on
@@ -33,6 +33,20 @@ https://wifi.afribit.africa {
 https://mesh-core.afribit.africa {
 	bind 10.254.30.1
 	handle /start {
+		@guest remote_ip 10.30.0.0/24
+		handle @guest {
+			reverse_proxy 127.0.0.1:8040 {
+				header_up X-Mesh-Client-IP {remote_host}
+				header_up X-Mesh-Proxy-TLS 1
+			}
+		}
+		handle {
+			respond 403
+		}
+	}
+	# The Afribit app's mesh beacon (S-14). Guests only, as for /start: the controller
+	# signs the address Caddy saw, so it must be the guest's own.
+	handle /.well-known/afribit-mesh-beacon {
 		@guest remote_ip 10.30.0.0/24
 		handle @guest {
 			reverse_proxy 127.0.0.1:8040 {
