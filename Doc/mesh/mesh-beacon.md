@@ -85,6 +85,16 @@ npm run mesh:beacon -- gate-entry --cert node-cert.json
 
 The entry is public. To retire a gateway, revoke its certificate and also remove its entry from the gate. The fixed vector `tests/fixtures/mesh-chat-proof-vector.json` is the gate's test input.
 
+## Deployed
+
+On 28 November 2026 mesh-core (KM-LAB-001) began serving the beacon and the chat proof.
+
+- Its certificate is serial `a4949bd9cff4a44b`, issued from the production root and valid until 28 November 2027. The revocation list is empty.
+- The node key was generated on mesh-core and never left it. The files are in `/etc/mesh/beacon`, and `MESH_BEACON_DIR` points there.
+- The controller release changes only the beacon files. The portal was not rebuilt.
+
+The same Caddy site also carries Afribit Chat for guests: the chat gate (`/v1/session`, `/v1/device/revoke`) and the Matrix client and media API (`/_matrix/client/*`, `/_matrix/media/*`). Caddy proxies these to the chat container's forwarders, which accept connections from mesh-core only. Chat therefore works on the mesh while the internet line is down. Federation, admin and directory paths are not routed. See `deploy/mesh-core/Caddyfile` and, in afribit-os, `infra/chat/README.md`.
+
 ## Routine work
 
 - **Renew** each node certificate before it ends. Issue a new one from the same node key every 90 days, and add the new certificate's gate entry.
