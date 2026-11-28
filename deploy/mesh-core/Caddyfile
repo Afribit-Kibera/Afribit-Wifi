@@ -1,5 +1,5 @@
 # mesh-core: one Caddy in front of the portal (Next.js :3000) and the join
-# service and Afribit Mesh beacon (controller :8040).
+# service and Afribit Mesh beacon (controller :8040), and Afribit Chat (CT 130).
 #
 # Two ways in:
 #  - Public: Cloudflare Tunnel -> cloudflared -> 127.0.0.1:80 (plain HTTP on
@@ -57,6 +57,37 @@ https://mesh-core.afribit.africa {
 		}
 		handle {
 			respond 403
+		}
+	}
+	# Afribit Chat (Saul CT 130, afribit-os infra/chat): the chat gate and the Matrix client
+	# API, for guests only, so Chat works on the mesh with the internet line down. CT 130's
+	# forwarders accept connections from this host alone. Federation and admin paths are
+	# not routed; they fall through to the 404 below.
+	@chat path /v1/session /v1/device/revoke /_matrix/client/* /_matrix/media/*
+	handle @chat {
+		header Cache-Control no-store
+		@outsider not remote_ip 10.30.0.0/24
+		handle @outsider {
+			respond 403
+		}
+		@directory path /_matrix/client/*/user_directory/search /_matrix/client/*/publicRooms
+		handle @directory {
+			respond 404
+		}
+		@gate path /v1/session /v1/device/revoke
+		handle @gate {
+			request_body {
+				max_size 8KB
+			}
+			reverse_proxy 192.168.100.95:8791
+		}
+		handle {
+			# Media is encrypted before upload; the app keeps images under 2 MB.
+			@upload path /_matrix/media/*/upload /_matrix/client/*/media/upload
+			request_body @upload {
+				max_size 3MB
+			}
+			reverse_proxy 192.168.100.95:8790
 		}
 	}
 	handle {
